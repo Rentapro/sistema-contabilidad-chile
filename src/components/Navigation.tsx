@@ -104,6 +104,21 @@ const allNavItems: NavItem[] = [
     roles: ['superadmin']
   },
   { 
+    href: '/ia-fiscal', 
+    label: 'IA Fiscal Chilena', 
+    icon: '🎯', 
+    description: 'Optimización tributaria extrema con IA',
+    requiredPermissions: ['ACCESO_IA_AVANZADA'],
+    roles: ['superadmin']
+  },
+  { 
+    href: '/demo', 
+    label: 'Demo Interactivo', 
+    icon: '🎬', 
+    description: 'Sistema de demos para clientes',
+    roles: ['superadmin', 'admin_empresa', 'contador']
+  },
+  { 
     href: '/analytics', 
     label: 'Analytics', 
     icon: '📈', 
