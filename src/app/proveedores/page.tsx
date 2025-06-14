@@ -2,8 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { Proveedor } from '@/types';
+import { proveedorService, ProveedorDB, ProveedorCreate } from '@/services/proveedorService';
 import { api } from '@/data/store';
 import { formatDateShort, validateRUT, validateEmail, formatRUT } from '@/lib/utils';
+
+// Función adaptadora para convertir entre tipos de BD y tipos de interfaz
+const adaptarProveedorDB = (proveedorDB: ProveedorDB): Proveedor => ({
+  id: proveedorDB.id,
+  nombre: proveedorDB.nombre,
+  email: proveedorDB.email,
+  telefono: proveedorDB.telefono,
+  direccion: proveedorDB.direccion,
+  rut: proveedorDB.rut,
+  giro: proveedorDB.giro || '',
+  fechaCreacion: new Date(proveedorDB.created_at),
+  activo: proveedorDB.activo,
+  tipoContribuyente: proveedorDB.tipo_contribuyente
+});
 
 export default function ProveedoresPage() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -11,6 +26,7 @@ export default function ProveedoresPage() {
   const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'activos' | 'inactivos'>('todos');
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -29,8 +45,19 @@ export default function ProveedoresPage() {
     cargarProveedores();
   }, []);
 
-  const cargarProveedores = () => {
-    setProveedores(api.getProveedores());
+  const cargarProveedores = async () => {
+    setLoading(true);
+    try {
+      // Intentar usar servicios reales primero
+      const proveedoresData = await proveedorService.obtenerProveedores();
+      setProveedores(proveedoresData.map(adaptarProveedorDB));
+    } catch (error) {
+      console.error('Error al cargar proveedores, usando API local:', error);
+      // Fallback a API local si falla la conexión a la BD
+      setProveedores(api.getProveedores());
+    } finally {
+      setLoading(false);
+    }
   };
 
   const proveedoresFiltrados = proveedores.filter(proveedor => {
@@ -80,25 +107,38 @@ export default function ProveedoresPage() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    const proveedorData = {
-      ...formData,
-      fechaCreacion: editingProveedor ? editingProveedor.fechaCreacion : new Date(),
-    };
+    setLoading(true);
+    try {
+      const proveedorData: ProveedorCreate = {
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono,
+        direccion: formData.direccion,
+        rut: formData.rut,
+        giro: formData.giro,
+        tipo_contribuyente: formData.tipoContribuyente,
+        activo: formData.activo,
+      };
 
-    if (editingProveedor) {
-      api.updateProveedor(editingProveedor.id, proveedorData);
-    } else {
-      api.createProveedor(proveedorData);
+      if (editingProveedor) {
+        await proveedorService.actualizarProveedor(editingProveedor.id, proveedorData);
+      } else {
+        await proveedorService.crearProveedor(proveedorData);
+      }
+
+      await cargarProveedores();
+      resetForm();
+    } catch (error) {
+      console.error('Error al procesar proveedor:', error);
+      alert('Error al procesar el proveedor. Por favor inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
     }
-
-    cargarProveedores();
-    resetForm();
   };
 
   const resetForm = () => {
@@ -131,16 +171,31 @@ export default function ProveedoresPage() {
     });
     setIsModalOpen(true);
   };
-
-  const handleToggleStatus = (id: string, activo: boolean) => {
-    api.updateProveedor(id, { activo: !activo });
-    cargarProveedores();
+  const handleToggleStatus = async (id: string, activo: boolean) => {
+    setLoading(true);
+    try {
+      await proveedorService.actualizarProveedor(id, { activo: !activo });
+      await cargarProveedores();
+    } catch (error) {
+      console.error('Error al cambiar estado del proveedor:', error);
+      alert('Error al cambiar el estado del proveedor. Por favor inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('¿Estás seguro de que deseas eliminar este proveedor?')) {
-      api.deleteProveedor(id);
-      cargarProveedores();
+      setLoading(true);
+      try {
+        await proveedorService.eliminarProveedor(id);
+        await cargarProveedores();
+      } catch (error) {
+        console.error('Error al eliminar proveedor:', error);
+        alert('Error al eliminar el proveedor. Por favor inténtalo de nuevo.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 

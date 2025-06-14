@@ -26,6 +26,35 @@ const allNavItems: NavItem[] = [
     description: 'Vista general del sistema',
     roles: ['superadmin', 'admin_empresa', 'contador', 'cliente_basico']
   },
+  // NUEVOS MÓDULOS MULTI-TENANT
+  { 
+    href: '/multi-empresa', 
+    label: 'Multi-Empresa', 
+    icon: '🏢', 
+    description: 'Gestión centralizada de múltiples empresas',
+    badge: 10,
+    status: 'active',
+    roles: ['superadmin', 'admin_empresa']
+  },
+  { 
+    href: '/gestion-comercial', 
+    label: 'Gestión Comercial', 
+    icon: '💰', 
+    description: 'Planes, precios y métricas de negocio',
+    badge: 531,
+    status: 'processing',
+    roles: ['superadmin']
+  },
+  { 
+    href: '/contador-externo', 
+    label: 'Panel Contador', 
+    icon: '👨‍💼', 
+    description: 'Dashboard simplificado para contadores externos',
+    badge: 13,
+    status: 'warning',
+    roles: ['contador_externo']
+  },
+  // MÓDULOS ORIGINALES
   { 
     href: '/firma', 
     label: 'Centro de Firma', 
@@ -64,12 +93,29 @@ const allNavItems: NavItem[] = [
     description: 'Gestión de proveedores',
     requiredPermissions: ['GESTIONAR_PROVEEDORES'],
     roles: ['superadmin', 'admin_empresa', 'contador']
-  },
-  { 
+  },  { 
     href: '/sii', 
     label: 'Servicios SII', 
     icon: '🇨🇱', 
     description: 'Formularios y servicios SII Chile',
+    roles: ['superadmin', 'admin_empresa', 'contador']
+  },
+  { 
+    href: '/alertas-sii', 
+    label: 'Alertas SII', 
+    icon: '🚨', 
+    description: 'Centro de alertas y notificaciones del SII',
+    roles: ['superadmin', 'admin_empresa', 'contador'],
+    status: 'warning',
+    badge: 5
+  },
+  { 
+    href: '/sii-real', 
+    label: 'SII Integración Real', 
+    icon: '🔗', 
+    description: 'Integración directa con APIs del SII',
+    status: 'active',
+    requiredPermissions: ['INTEGRACION_SII_REAL'],
     roles: ['superadmin', 'admin_empresa', 'contador']
   },
   { 
@@ -102,14 +148,22 @@ const allNavItems: NavItem[] = [
     description: 'IA y análisis avanzado',
     requiredPermissions: ['ACCESO_IA_AVANZADA'],
     roles: ['superadmin']
+  },  { 
+    href: '/ia-fiscal', 
+    label: 'IA Fiscal Avanzada', 
+    icon: '🧠', 
+    description: 'Consultor tributario con IA + Optimizaciones automáticas',
+    requiredPermissions: ['ACCESO_IA_AVANZADA'],
+    roles: ['superadmin', 'admin_empresa'],
+    status: 'active',
+    badge: 4
   },
   { 
-    href: '/ia-fiscal', 
-    label: 'IA Fiscal Chilena', 
-    icon: '🎯', 
-    description: 'Optimización tributaria extrema con IA',
-    requiredPermissions: ['ACCESO_IA_AVANZADA'],
-    roles: ['superadmin']
+    href: '/consejos', 
+    label: 'Consejos Diarios', 
+    icon: '💡', 
+    description: 'Tips y estrategias tributarias actualizadas diariamente',
+    roles: ['superadmin', 'admin_empresa', 'contador', 'cliente_basico']
   },
   { 
     href: '/demo', 
@@ -234,14 +288,57 @@ const allNavItems: NavItem[] = [
     description: 'Supervisión continua de métricas financieras',
     requiredPermissions: ['MONITOR_FINANCIERO'],
     roles: ['superadmin', 'admin_empresa', 'contador']
-  },
-  { 
+  },  { 
     href: '/system-status', 
     label: 'Estado del Sistema', 
     icon: '🎯', 
     description: 'Vista completa del estado de la plataforma',
     requiredPermissions: ['SYSTEM_STATUS'],
     roles: ['superadmin']
+  },
+  // 🚀 NUEVAS FUNCIONALIDADES IMPLEMENTADAS
+  { 
+    href: '/reportes-avanzados', 
+    label: 'Reportes SII Avanzados', 
+    icon: '📋', 
+    description: 'F29, F22, Libros IVA, Propuestas automáticas',
+    roles: ['superadmin', 'admin_empresa', 'contador'],
+    status: 'active',
+    badge: 3
+  },
+  { 
+    href: '/calendario-tributario', 
+    label: 'Calendario Tributario', 
+    icon: '📅', 
+    description: 'Fechas importantes y recordatorios automáticos',
+    roles: ['superadmin', 'admin_empresa', 'contador', 'cliente_basico'],
+    status: 'warning',
+    badge: 8
+  },
+  { 
+    href: '/simulador-multas', 
+    label: 'Simulador de Multas', 
+    icon: '⚖️', 
+    description: 'Calculadora de multas y recargos del SII',
+    roles: ['superadmin', 'admin_empresa', 'contador'],
+    status: 'active'
+  },
+  { 
+    href: '/centro-documentos', 
+    label: 'Centro de Documentos', 
+    icon: '📁', 
+    description: 'Gestión de certificados y documentos tributarios',
+    roles: ['superadmin', 'admin_empresa', 'contador'],
+    badge: 12
+  },
+  { 
+    href: '/dte-electronico', 
+    label: 'DTE Electrónico', 
+    icon: '📄', 
+    description: 'Factura y Boleta Electrónica SII',
+    roles: ['superadmin', 'admin_empresa', 'contador'],
+    status: 'active',
+    badge: 2
   },
 ];
 
@@ -388,18 +485,17 @@ export default function Navigation() {
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-gray-900">
                   {usuario?.nombre} {usuario?.apellido}
-                </p>
-                <p className="text-xs text-gray-500 capitalize">
+                </p>                <p className="text-xs text-gray-500 capitalize">
                   {usuario?.rol === 'superadmin' ? 'Super Admin' : 
                    usuario?.rol === 'admin_empresa' ? 'Admin Empresa' :
                    usuario?.rol === 'contador' ? 'Contador' : 'Cliente'}
-                  {usuario?.licencia !== 'superadmin' && (
+                  {(empresaActual?.tipoLicencia || usuario?.licencia) !== 'superadmin' && (
                     <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
-                      usuario?.licencia === 'premium' ? 'bg-yellow-100 text-yellow-800' :
-                      usuario?.licencia === 'trial' ? 'bg-orange-100 text-orange-800' :
+                      (empresaActual?.tipoLicencia || usuario?.licencia) === 'premium' ? 'bg-yellow-100 text-yellow-800' :
+                      (empresaActual?.tipoLicencia || usuario?.licencia) === 'trial' ? 'bg-orange-100 text-orange-800' :
                       'bg-green-100 text-green-800'
                     }`}>
-                      {usuario?.licencia}
+                      {empresaActual?.tipoLicencia || usuario?.licencia}
                     </span>
                   )}
                 </p>

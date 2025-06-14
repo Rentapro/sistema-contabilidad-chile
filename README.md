@@ -96,12 +96,39 @@
 - npm o yarn
 - Git
 
-### Instalación
+### Instalación Rápida
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/TU_USUARIO/sistema-contabilidad-chile.git
+cd sistema-contabilidad-chile
+
+# 2. Ejecutar configuración automática
+chmod +x setup-project.sh
+./setup-project.sh
+
+# 3. Iniciar en desarrollo
+npm run dev
+```
+
+### Configuración para GitHub
+
+Para desplegar en GitHub Pages, sigue la [**Guía de Configuración GitHub**](./GITHUB_SETUP.md):
+
+```bash
+# Configuración automática para GitHub
+chmod +x setup-github.sh
+./setup-github.sh
+```
+
+### Instalación Manual
+
+### Instalación Manual
 
 1. **Clonar el repositorio**
    ```bash
-   git clone [URL_DEL_REPOSITORIO]
-   cd contabilidad-chile
+   git clone https://github.com/TU_USUARIO/sistema-contabilidad-chile.git
+   cd sistema-contabilidad-chile
    ```
 
 2. **Instalar dependencias**
@@ -109,12 +136,18 @@
    npm install
    ```
 
-3. **Iniciar en modo desarrollo**
+3. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env.local
+   # Editar .env.local con tus configuraciones
+   ```
+
+4. **Iniciar en modo desarrollo**
    ```bash
    npm run dev
    ```
 
-4. **Acceder a la aplicación**
+5. **Acceder a la aplicación**
    ```
    http://localhost:3000
    ```

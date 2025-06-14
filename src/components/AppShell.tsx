@@ -7,13 +7,14 @@ import ClienteDashboard from '@/components/ClienteDashboard';
 import Navigation from '@/components/Navigation';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Usuario } from '@/types/auth';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 export default function AppShell({ children }: AppShellProps) {
-  const { usuario, isLoading, esSuperAdmin, esCliente } = useAuth();
+  const { usuario, isLoading, esSuperAdmin, esCliente, login } = useAuth();
   const pathname = usePathname();
   const [showAuthenticatedContent, setShowAuthenticatedContent] = useState(false);
 
@@ -25,7 +26,14 @@ export default function AppShell({ children }: AppShellProps) {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isLoading]);
+  }, [isLoading]);  const handleLoginSuccess = async (usuarioLogueado: Usuario) => {
+    // Esta función será llamada cuando el login sea exitoso
+    // Usar el método login del contexto para actualizar el estado
+    console.log('Login exitoso:', usuarioLogueado);
+    
+    // Forzar recarga del estado de autenticación
+    window.location.reload();
+  };
 
   // Pantalla de carga
   if (isLoading || !showAuthenticatedContent) {
@@ -37,21 +45,18 @@ export default function AppShell({ children }: AppShellProps) {
         </div>
       </div>
     );
-  }
-
-  // Si no hay usuario autenticado, mostrar login
+  }  // Si no hay usuario autenticado, mostrar login
   if (!usuario) {
     return <LoginPage />;
   }
-
   // Para SuperAdmin en la ruta raíz, mostrar dashboard ejecutivo
   if (esSuperAdmin() && pathname === '/') {
-    return <SuperAdminDashboard />;
+    return <SuperAdminDashboard usuario={usuario} />;
   }
 
   // Para cliente básico en la ruta raíz, mostrar dashboard simplificado
   if (esCliente() && pathname === '/') {
-    return <ClienteDashboard />;
+    return <ClienteDashboard usuario={usuario} />;
   }
 
   // Para todas las demás rutas, mostrar la aplicación normal con navegación

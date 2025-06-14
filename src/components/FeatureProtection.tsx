@@ -19,9 +19,18 @@ export default function FeatureProtection({
   fallback,
   redirectTo
 }: FeatureProtectionProps) {
-  const { usuario, tienePermiso } = useAuth();
+  const { usuario, tienePermiso, empresaActual } = useAuth();
   const router = useRouter();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+
+  // Función helper para determinar el plan actual
+  const getPlanActual = () => {
+    return empresaActual?.tipoLicencia || usuario?.licencia || 'basico';
+  };
+
+  const esBasico = () => {
+    return getPlanActual() === 'basico';
+  };
 
   useEffect(() => {
     if (!usuario) {
@@ -80,18 +89,17 @@ export default function FeatureProtection({
           <div className="ml-3">
             <h3 className="text-sm font-medium text-yellow-800">
               Función No Disponible
-            </h3>
-            <div className="mt-2 text-sm text-yellow-700">
+            </h3>            <div className="mt-2 text-sm text-yellow-700">
               <p>
                 Esta funcionalidad requiere una licencia superior. 
-                {usuario?.licencia === 'basico' && (
+                {esBasico() && (
                   <span className="block mt-1">
                     <strong>Actualiza a Premium</strong> para acceder a todas las características avanzadas.
                   </span>
                 )}
               </p>
             </div>
-            {usuario?.licencia === 'basico' && (
+            {esBasico() && (
               <div className="mt-4">
                 <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
                   Actualizar Licencia
@@ -103,60 +111,5 @@ export default function FeatureProtection({
       </div>
     );
   }
-
   return <>{children}</>;
-}
-
-// Hook para verificar límites de uso
-export function useUsageLimits() {
-  const { usuario } = useAuth();
-
-  const getLimits = () => {
-    if (!usuario) return null;
-
-    switch (usuario.licencia) {
-      case 'basico':
-        return {
-          facturas: 50,
-          clientes: 25,
-          usuarios: 1,
-          reportes: 3,
-          integraciones: 0
-        };
-      case 'premium':
-        return {
-          facturas: 1000,
-          clientes: 500,
-          usuarios: 10,
-          reportes: -1, // ilimitado
-          integraciones: 5
-        };
-      case 'trial':
-        return {
-          facturas: 10,
-          clientes: 5,
-          usuarios: 1,
-          reportes: 1,
-          integraciones: 0
-        };
-      default:
-        return null;
-    }
-  };
-
-  const checkLimit = (feature: string, currentUsage: number): { exceeded: boolean; limit: number; remaining: number } => {
-    const limits = getLimits();
-    if (!limits) return { exceeded: false, limit: -1, remaining: -1 };
-
-    const limit = limits[feature as keyof typeof limits] as number;
-    if (limit === -1) return { exceeded: false, limit: -1, remaining: -1 };
-
-    return {
-      exceeded: currentUsage >= limit,
-      limit,
-      remaining: Math.max(0, limit - currentUsage)
-    };
-  };
-
-  return { getLimits, checkLimit };
 }

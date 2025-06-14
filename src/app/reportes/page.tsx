@@ -4,16 +4,69 @@ import { useState, useEffect } from 'react';
 import { Cliente, Factura, Gasto, ReporteFinanciero } from '@/types';
 import { api } from '@/data/store';
 import { formatCurrency, formatDateShort } from '@/lib/utils';
+import { facturacionService, Factura as FacturaDB } from '@/services/facturacionService';
+import { clienteService, Cliente as ClienteDB } from '@/services/clienteService';
+import { gastoService, GastoDB } from '@/services/gastoService';
+
+// Funciones adaptadoras para convertir entre tipos de BD y tipos de interfaz
+const adaptarFacturaDB = (facturaDB: FacturaDB): Factura => ({
+  id: facturaDB.id,
+  numero: facturaDB.numero_factura,
+  clienteId: facturaDB.cliente_id || '',
+  fecha: new Date(facturaDB.fecha_emision),
+  fechaVencimiento: new Date(facturaDB.fecha_vencimiento || facturaDB.fecha_emision),
+  detalles: facturaDB.detalles?.map(d => ({
+    id: d.id,
+    productoId: d.producto_id || d.descripcion,
+    cantidad: d.cantidad,
+    precioUnitario: d.precio_unitario,
+    descuento: d.descuento_porcentaje || 0,
+    subtotal: d.monto_neto
+  })) || [],
+  subtotal: facturaDB.monto_neto,
+  iva: facturaDB.monto_iva,
+  total: facturaDB.monto_total,
+  estado: facturaDB.estado,
+  tipoDocumento: facturaDB.tipo_documento === 33 ? 'factura_electronica' : 
+                 facturaDB.tipo_documento === 39 ? 'boleta' : 'factura_electronica',
+  folioSII: facturaDB.folio.toString(),
+  timbreSII: facturaDB.track_id,
+  notas: facturaDB.observaciones
+});
+
+const adaptarClienteDB = (clienteDB: ClienteDB): Cliente => ({
+  id: clienteDB.id,
+  nombre: clienteDB.razon_social,
+  email: clienteDB.email || '',
+  telefono: clienteDB.telefono || '',
+  direccion: clienteDB.direccion || '',
+  rut: clienteDB.rut,
+  giro: clienteDB.nombre_fantasia || '',
+  fechaCreacion: new Date(clienteDB.created_at),
+  activo: clienteDB.activo,
+  tipoContribuyente: 'primera_categoria' // Por defecto
+});
+
+const adaptarGastoDB = (gastoDB: GastoDB): Gasto => ({
+  id: gastoDB.id,
+  proveedorId: gastoDB.proveedor_id,
+  categoria: gastoDB.categoria,
+  descripcion: gastoDB.descripcion,
+  monto: gastoDB.monto,
+  fecha: new Date(gastoDB.fecha),
+  comprobante: gastoDB.comprobante,
+  deducible: gastoDB.deducible
+});
 
 export default function ReportesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [loading, setLoading] = useState(false);
   const [tipoReporte, setTipoReporte] = useState<'resumen' | 'ingresos' | 'gastos' | 'balance' | 'sii'>('resumen');
   const [periodoInicio, setPeriodoInicio] = useState('');
   const [periodoFin, setPeriodoFin] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState('');
-
   useEffect(() => {
     cargarDatos();
     // Establecer periodo por defecto (mes actual)
@@ -25,10 +78,28 @@ export default function ReportesPage() {
     setPeriodoFin(finMes.toISOString().split('T')[0]);
   }, []);
 
-  const cargarDatos = () => {
-    setClientes(api.getClientes());
-    setFacturas(api.getFacturas());
-    setGastos(api.getGastos());
+  const cargarDatos = async () => {
+    setLoading(true);
+    try {
+      // Intentar usar servicios reales primero
+      const [facturasData, clientesData, gastosData] = await Promise.all([
+        facturacionService.obtenerFacturas(),
+        clienteService.obtenerClientes(),
+        gastoService.obtenerGastos()
+      ]);
+      
+      setFacturas(facturasData.map(adaptarFacturaDB));
+      setClientes(clientesData.map(adaptarClienteDB));
+      setGastos(gastosData.map(adaptarGastoDB));
+    } catch (error) {
+      console.error('Error al cargar datos, usando API local:', error);
+      // Fallback a API local si falla la conexión a la BD
+      setFacturas(api.getFacturas());
+      setClientes(api.getClientes());
+      setGastos(api.getGastos());
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtrarPorPeriodo = () => {
@@ -263,9 +334,7 @@ export default function ReportesPage() {
               📊 Excel
             </button>
           </div>
-        </div>
-
-        {/* Controles de filtros */}
+        </div>        {/* Controles de filtros */}
         <div className="bg-white rounded-lg shadow mb-6">
           <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Parámetros del Reporte</h3>
@@ -321,13 +390,27 @@ export default function ReportesPage() {
                 </select>
               </div>
             </div>
+          </div>        </div>
+
+        {/* Indicador de carga */}
+        {loading && (
+          <div className="bg-white rounded-lg shadow mb-6">
+            <div className="p-6 text-center">
+              <div className="inline-flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-600">Cargando datos financieros...</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Contenido del reporte */}
-        {tipoReporte === 'resumen' && renderResumenFinanciero()}
+        {!loading && tipoReporte === 'resumen' && renderResumenFinanciero()}
 
-        {tipoReporte === 'ingresos' && (
+        {!loading && tipoReporte === 'ingresos' && (
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">Detalle de Ingresos</h3>
@@ -387,7 +470,7 @@ export default function ReportesPage() {
           </div>
         )}
 
-        {tipoReporte === 'gastos' && (
+        {!loading && tipoReporte === 'gastos' && (
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">Detalle de Gastos</h3>
@@ -433,7 +516,7 @@ export default function ReportesPage() {
           </div>
         )}
 
-        {tipoReporte === 'balance' && (
+        {!loading && tipoReporte === 'balance' && (
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Balance General (Simulado)</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -483,7 +566,7 @@ export default function ReportesPage() {
           </div>
         )}
 
-        {tipoReporte === 'sii' && (
+        {!loading && tipoReporte === 'sii' && (
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">📋 Reportes SII Chile</h3>

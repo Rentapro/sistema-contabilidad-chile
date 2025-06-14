@@ -1,51 +1,56 @@
 #!/bin/bash
+# setup-github.sh - Script para configurar el proyecto en GitHub
 
-# 🚀 Script de Configuración Automática de GitHub
-# Para el Sistema de Contabilidad Chileno
+set -e
 
-echo "🔧 Configurando repositorio GitHub..."
+# Colores para output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Verificar si GitHub CLI está instalado
-if ! command -v gh &> /dev/null; then
-    echo "❌ GitHub CLI no está instalado. Instalando..."
-    brew install gh
-fi
-
-# Verificar autenticación
-echo "🔐 Verificando autenticación con GitHub..."
-gh auth status || {
-    echo "🔑 Necesitas autenticarte con GitHub CLI:"
-    gh auth login
+# Función para imprimir mensajes coloreados
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-# Configurar descripción del repositorio
-echo "📝 Configurando descripción del repositorio..."
-gh repo edit Rentapro/sistema-contabilidad-chile \
-    --description "🇨🇱 Sistema integral de contabilidad empresarial chileno con IA, arquitectura multi-tenant y compliance SII. Next.js 14 + TypeScript + Tailwind CSS." \
-    --homepage "https://rentapro.github.io/sistema-contabilidad-chile"
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
 
-# Agregar topics (etiquetas)
-echo "🏷️ Agregando topics al repositorio..."
-gh repo edit Rentapro/sistema-contabilidad-chile \
-    --add-topic "nextjs" \
-    --add-topic "typescript" \
-    --add-topic "contabilidad" \
-    --add-topic "chile" \
-    --add-topic "multi-tenant" \
-    --add-topic "artificial-intelligence" \
-    --add-topic "tailwindcss" \
-    --add-topic "shadcn-ui" \
-    --add-topic "sii" \
-    --add-topic "facturacion-electronica" \
-    --add-topic "business-intelligence" \
-    --add-topic "fintech"
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
 
-# Habilitar GitHub Pages
-echo "📄 Habilitando GitHub Pages..."
-gh api repos/Rentapro/sistema-contabilidad-chile/pages \
-    --method POST \
-    --field source[branch]=main \
-    --field source[path]=/out || echo "GitHub Pages ya configurado o requiere configuración manual"
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Verificar si estamos en un repositorio Git
+check_git_repo() {
+    if [ ! -d ".git" ]; then
+        print_error "Este directorio no es un repositorio Git."
+        echo "Ejecuta: git init"
+        exit 1
+    fi
+    print_success "Repositorio Git detectado"
+}
+
+# Configurar Git si no está configurado
+setup_git_config() {
+    if [ -z "$(git config --global user.name)" ]; then
+        read -p "Ingresa tu nombre para Git: " git_name
+        git config --global user.name "$git_name"
+    fi
+    
+    if [ -z "$(git config --global user.email)" ]; then
+        read -p "Ingresa tu email para Git: " git_email
+        git config --global user.email "$git_email"
+    fi
+    
+    print_success "Configuración de Git completada"
+}
 
 # Configurar branch protection para main
 echo "🛡️ Configurando branch protection para main..."

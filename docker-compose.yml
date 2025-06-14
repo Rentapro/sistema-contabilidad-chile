@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # Aplicación principal
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: sistema-contabilidad-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-development-key-change-in-production-32}
+      - JWT_SECRET=${JWT_SECRET:-development-jwt-secret}
+      - SESSION_SECRET=${SESSION_SECRET:-development-session-secret}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    restart: unless-stopped
+    networks:
+      - contabilidad-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.contabilidad.rule=Host(`contabilidad.local`)"
+      - "traefik.http.services.contabilidad.loadbalancer.server.port=3000"
+
+  # Nginx como proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: sistema-contabilidad-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - contabilidad-network
+
+  # Base de datos PostgreSQL (para futuro uso)
+  postgres:
+    image: postgres:15-alpine
+    container_name: sistema-contabilidad-db
+    environment:
+      - POSTGRES_DB=${DB_NAME:-contabilidad}
+      - POSTGRES_USER=${DB_USER:-contabilidad_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypont-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - contabilidad-network
+
+  # Redis para caché y sesiones (opcional)
+  redis:
+    image: redis:7-alpine
+    container_name: sistema-contabilidad-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - contabilidad-network
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+
+  # Monitoring con Prometheus (opcional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sistema-contabilidad-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - contabilidad-network
+
+  # Grafana para visualización (opcional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sistema-contabilidad-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin_password}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - contabilidad-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  contabilidad-network:
+    driver: bridge

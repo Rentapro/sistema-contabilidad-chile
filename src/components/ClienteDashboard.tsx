@@ -66,22 +66,21 @@ export default function ClienteDashboard({ usuario }: ClienteDashboardProps) {
       href: '/declaraciones',
       icon: '🏛️',
       disponible: true
-    },
-    {
+    },    {
       titulo: 'Reportes Avanzados',
       descripcion: 'Analytics e IA avanzada',
-      href: '#',
+      href: '/advanced-analytics',
       icon: '🧠',
-      disponible: false,
+      disponible: true,
       premium: true,
       verificacion: () => puedeAccederReportesAvanzados()
     },
     {
       titulo: 'Automatización IA',
       descripcion: 'Procesamiento automático con IA',
-      href: '#',
+      href: '/workflow-automation',
       icon: '🤖',
-      disponible: false,
+      disponible: true,
       premium: true,
       verificacion: () => puedeUsarIA()
     }

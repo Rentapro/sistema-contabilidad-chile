@@ -54,7 +54,7 @@ export interface Factura {
   subtotal: number;
   iva: number; // IVA 19% en Chile
   total: number;
-  estado: 'pendiente' | 'pagada' | 'vencida' | 'cancelada';
+  estado: 'pendiente' | 'pagada' | 'vencida' | 'anulada';
   notas?: string;
   tipoDocumento: 'boleta' | 'factura_electronica' | 'nota_credito' | 'nota_debito';
   folioSII?: string; // Folio del SII para documentos electrónicos

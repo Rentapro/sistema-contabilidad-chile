@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import IAFiscalChilena from '@/components/IAFiscalChilena';
+import IAFiscalAvanzada from '@/components/IAFiscalAvanzada';
 
 export default function IAFiscalPage() {
-  return <IAFiscalChilena />;
+  return <IAFiscalAvanzada />;
 }

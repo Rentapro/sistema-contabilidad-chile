@@ -16,15 +16,14 @@ const USUARIOS_MOCK: Usuario[] = [
     ultimoAcceso: new Date(),
     activo: true,
     permisos: PERMISOS_POR_ROL.superadmin
-  },
-  {
+  },  {
     id: 'cliente-1',
     email: 'cliente@empresa.com',
     nombre: 'Juan',
     apellido: 'Pérez',
     rol: 'cliente_basico',
     empresa: 'empresa-1',
-    licencia: 'basico',
+    licencia: 'premium', // Cambiado de 'basico' a 'premium' para que coincida con la empresa
     fechaCreacion: new Date('2024-06-01'),
     ultimoAcceso: new Date(),
     activo: true,
@@ -138,11 +137,22 @@ class AuthService {
 
   getSesionActual(): Sesion | null {
     return this.sesionActual;
-  }
-
-  getUsuarioActual(): Usuario | null {
+  }  getUsuarioActual(): Usuario | null {
     if (!this.sesionActual) return null;
-    return USUARIOS_MOCK.find(u => u.id === this.sesionActual!.usuarioId) || null;
+    
+    // TODO: Reemplazar con consulta a BD real
+    // const usuario = await db.usuarios.findUnique({ where: { id: this.sesionActual.usuarioId } });
+    
+    // Fallback temporal a datos mock
+    const usuario = USUARIOS_MOCK.find(u => u.id === this.sesionActual!.usuarioId);
+    
+    if (!usuario) {
+      console.warn('⚠️ Usuario no encontrado en la sesión actual');
+      this.logout();
+      return null;
+    }
+    
+    return usuario;
   }
 
   tienePermiso(permiso: string): boolean {

@@ -71,14 +71,27 @@ export const generateFacturaNumber = (): string => {
   return `FAC-${timestamp}`; // Factura electrónica
 };
 
-// Validación de RUT chileno (reemplaza RFC mexicano)
+// Validación de RUT chileno mejorada (reemplaza RFC mexicano)
 export const validateRUT = (rut: string): boolean => {
-  const rutLimpio = rut.replace(/[^0-9kK]/g, '');
+  if (!rut || typeof rut !== 'string') return false;
+  
+  // Limpiar RUT: solo números y K
+  const rutLimpio = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  
+  // Verificar longitud mínima y máxima
   if (rutLimpio.length < 8 || rutLimpio.length > 9) return false;
   
+  // Separar cuerpo y dígito verificador
   const cuerpo = rutLimpio.slice(0, -1);
-  const dv = rutLimpio.slice(-1).toLowerCase();
+  const dv = rutLimpio.slice(-1);
   
+  // Validar que el cuerpo sean solo números
+  if (!/^\d+$/.test(cuerpo)) return false;
+  
+  // Validar que el DV sea número o K
+  if (!/^[0-9K]$/.test(dv)) return false;
+  
+  // Calcular dígito verificador
   let suma = 0;
   let multiplo = 2;
   
@@ -88,20 +101,79 @@ export const validateRUT = (rut: string): boolean => {
   }
   
   const resto = suma % 11;
-  const dvCalculado = resto === 0 ? '0' : resto === 1 ? 'k' : (11 - resto).toString();
+  const dvCalculado = resto === 0 ? '0' : resto === 1 ? 'K' : (11 - resto).toString();
   
   return dv === dvCalculado;
 };
 
-// Formatear RUT chileno
-export const formatRUT = (rut: string): string => {
-  const rutLimpio = rut.replace(/[^0-9kK]/g, '');
-  if (rutLimpio.length < 8) return rut;
+// Validar RUT y mostrar errores específicos
+export const validateRUTWithError = (rut: string): { valid: boolean; error?: string } => {
+  if (!rut || typeof rut !== 'string') {
+    return { valid: false, error: 'RUT es requerido' };
+  }
+  
+  const rutLimpio = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  
+  if (rutLimpio.length < 8) {
+    return { valid: false, error: 'RUT muy corto (mínimo 8 caracteres)' };
+  }
+  
+  if (rutLimpio.length > 9) {
+    return { valid: false, error: 'RUT muy largo (máximo 9 caracteres)' };
+  }
   
   const cuerpo = rutLimpio.slice(0, -1);
   const dv = rutLimpio.slice(-1);
   
-  return `${parseInt(cuerpo).toLocaleString('es-CL')}-${dv.toUpperCase()}`;
+  if (!/^\d+$/.test(cuerpo)) {
+    return { valid: false, error: 'El cuerpo del RUT debe contener solo números' };
+  }
+  
+  if (!/^[0-9K]$/.test(dv)) {
+    return { valid: false, error: 'Dígito verificador inválido (debe ser 0-9 o K)' };
+  }
+  
+  // Calcular dígito verificador
+  let suma = 0;
+  let multiplo = 2;
+  
+  for (let i = cuerpo.length - 1; i >= 0; i--) {
+    suma += parseInt(cuerpo[i]) * multiplo;
+    multiplo = multiplo === 7 ? 2 : multiplo + 1;
+  }
+  
+  const resto = suma % 11;
+  const dvCalculado = resto === 0 ? '0' : resto === 1 ? 'K' : (11 - resto).toString();
+  
+  if (dv !== dvCalculado) {
+    return { valid: false, error: `Dígito verificador incorrecto. Debería ser: ${dvCalculado}` };
+  }
+  
+  return { valid: true };
+};
+
+// Formatear RUT chileno mejorado
+export const formatRUT = (rut: string): string => {
+  if (!rut || typeof rut !== 'string') return '';
+  
+  // Limpiar RUT: solo números y K
+  const rutLimpio = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  if (rutLimpio.length < 2) return rut;
+  
+  // Separar cuerpo y dígito verificador
+  const cuerpo = rutLimpio.slice(0, -1);
+  const dv = rutLimpio.slice(-1);
+  
+  // Formatear con puntos y guión
+  const cuerpoFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  
+  return `${cuerpoFormateado}-${dv}`;
+};
+
+// Limpiar RUT (quitar formato)
+export const cleanRUT = (rut: string): string => {
+  if (!rut || typeof rut !== 'string') return '';
+  return rut.replace(/[^0-9kK]/g, '').toUpperCase();
 };
 
 export const validateEmail = (email: string): boolean => {
@@ -146,19 +218,7 @@ export const validarRUT = (rut: string): boolean => {
   
   const resto = suma % 11;
   const dvCalculado = resto === 0 ? '0' : resto === 1 ? 'k' : (11 - resto).toString();
-  
-  return dv === dvCalculado;
-};
-
-export const formatRUT = (rut: string): string => {
-  const rutLimpio = rut.replace(/[^0-9kK]/g, '');
-  if (rutLimpio.length < 8) return rut;
-  
-  const cuerpo = rutLimpio.slice(0, -1);
-  const dv = rutLimpio.slice(-1);
-  const cuerpoFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  
-  return `${cuerpoFormateado}-${dv}`;
+    return dv === dvCalculado;
 };
 
 export const calcularDiasVencimiento = (fechaVencimiento: Date): number => {

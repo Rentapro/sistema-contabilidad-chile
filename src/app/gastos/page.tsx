@@ -2,8 +2,35 @@
 
 import { useState, useEffect } from 'react';
 import { Gasto, Proveedor } from '@/types';
+import { gastoService, GastoDB, GastoCreate } from '@/services/gastoService';
+import { proveedorService, ProveedorDB } from '@/services/proveedorService';
 import { api } from '@/data/store';
 import { formatCurrency, formatDateShort } from '@/lib/utils';
+
+// Funciones adaptadoras para convertir entre tipos de BD y tipos de interfaz
+const adaptarGastoDB = (gastoDB: GastoDB): Gasto => ({
+  id: gastoDB.id,
+  proveedorId: gastoDB.proveedor_id,
+  categoria: gastoDB.categoria,
+  descripcion: gastoDB.descripcion,
+  monto: gastoDB.monto,
+  fecha: new Date(gastoDB.fecha),
+  comprobante: gastoDB.comprobante,
+  deducible: gastoDB.deducible
+});
+
+const adaptarProveedorDB = (proveedorDB: ProveedorDB): Proveedor => ({
+  id: proveedorDB.id,
+  nombre: proveedorDB.nombre,
+  email: proveedorDB.email,
+  telefono: proveedorDB.telefono,
+  direccion: proveedorDB.direccion,
+  rut: proveedorDB.rut,
+  giro: proveedorDB.giro || '',
+  fechaCreacion: new Date(proveedorDB.created_at),
+  activo: proveedorDB.activo,
+  tipoContribuyente: proveedorDB.tipo_contribuyente
+});
 
 export default function GastosPage() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
@@ -14,6 +41,7 @@ export default function GastosPage() {
   const [filtroProveedor, setFiltroProveedor] = useState('');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     proveedorId: '',
@@ -40,14 +68,29 @@ export default function GastosPage() {
     'Gastos Bancarios',
     'Otros Gastos Deducibles'
   ];
-
   useEffect(() => {
     cargarDatos();
   }, []);
 
-  const cargarDatos = () => {
-    setGastos(api.getGastos());
-    setProveedores(api.getProveedores());
+  const cargarDatos = async () => {
+    setLoading(true);
+    try {
+      // Intentar usar servicios reales primero
+      const [gastosData, proveedoresData] = await Promise.all([
+        gastoService.obtenerGastos(),
+        proveedorService.obtenerProveedores()
+      ]);
+      
+      setGastos(gastosData.map(adaptarGastoDB));
+      setProveedores(proveedoresData.map(adaptarProveedorDB));
+    } catch (error) {
+      console.error('Error al cargar datos, usando API local:', error);
+      // Fallback a API local si falla la conexión a la BD
+      setGastos(api.getGastos());
+      setProveedores(api.getProveedores());
+    } finally {
+      setLoading(false);
+    }
   };
 
   const gastosFiltrados = gastos.filter(gasto => {
@@ -62,24 +105,35 @@ export default function GastosPage() {
 
   const totalGastos = gastosFiltrados.reduce((sum, gasto) => sum + gasto.monto, 0);
   const gastosDeducibles = gastosFiltrados.filter(g => g.deducible).reduce((sum, gasto) => sum + gasto.monto, 0);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const gastoData = {
-      ...formData,
-      monto: parseFloat(formData.monto),
-      fecha: new Date(formData.fecha),
-    };
+    setLoading(true);
+    try {
+      const gastoData: GastoCreate = {
+        proveedor_id: formData.proveedorId || undefined,
+        categoria: formData.categoria,
+        descripcion: formData.descripcion,
+        monto: parseFloat(formData.monto),
+        fecha: formData.fecha,
+        comprobante: formData.comprobante || undefined,
+        deducible: formData.deducible,
+      };
 
-    if (editingGasto) {
-      api.updateGasto(editingGasto.id, gastoData);
-    } else {
-      api.createGasto(gastoData);
+      if (editingGasto) {
+        await gastoService.actualizarGasto(editingGasto.id, gastoData);
+      } else {
+        await gastoService.crearGasto(gastoData);
+      }
+
+      await cargarDatos();
+      resetForm();
+    } catch (error) {
+      console.error('Error al procesar gasto:', error);
+      alert('Error al procesar el gasto. Por favor inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
     }
-
-    cargarDatos();
-    resetForm();
   };
 
   const resetForm = () => {
@@ -109,11 +163,18 @@ export default function GastosPage() {
     });
     setIsModalOpen(true);
   };
-
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('¿Estás seguro de que deseas eliminar este gasto?')) {
-      api.deleteGasto(id);
-      cargarDatos();
+      setLoading(true);
+      try {
+        await gastoService.eliminarGasto(id);
+        await cargarDatos();
+      } catch (error) {
+        console.error('Error al eliminar gasto:', error);
+        alert('Error al eliminar el gasto. Por favor inténtalo de nuevo.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 

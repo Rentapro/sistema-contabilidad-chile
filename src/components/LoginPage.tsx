@@ -1,19 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { authService } from '@/services/authService';
-import { Usuario } from '@/types/auth';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface LoginPageProps {
-  onLoginSuccess: (usuario: Usuario) => void;
-}
-
-export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
+export default function LoginPage() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showDemo, setShowDemo] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,31 +16,16 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setError('');
 
     try {
-      const result = await authService.login(email, password);
+      const success = await login(email, password);
       
-      if (result.success && result.usuario) {
-        onLoginSuccess(result.usuario);
-      } else {
-        setError(result.error || 'Error de autenticación');
+      if (!success) {
+        setError('Email o contraseña incorrectos');
       }
+      // Si el login es exitoso, el contexto se actualizará automáticamente
     } catch (err) {
       setError('Error de conexión');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loginDemo = async (tipo: 'superadmin' | 'cliente') => {
-    const credentials = tipo === 'superadmin' 
-      ? { email: 'admin@contabilidad.pro', password: 'admin123' }
-      : { email: 'cliente@empresa.com', password: 'cliente123' };
-    
-    setEmail(credentials.email);
-    setPassword(credentials.password);
-    
-    const result = await authService.login(credentials.email, credentials.password);
-    if (result.success && result.usuario) {
-      onLoginSuccess(result.usuario);
     }
   };
 
@@ -67,36 +47,33 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
         {/* Login Form */}
         <div className="bg-white rounded-lg shadow-xl p-8">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
+          <form className="space-y-6" onSubmit={handleSubmit}>            <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
-              </label>
-              <input
+              </label>              <input
                 id="email"
                 name="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="correo@empresa.com"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-700 font-medium"
+                placeholder="cliente@empresa.com"
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Contraseña
-              </label>
-              <input
+              </label>              <input
                 id="password"
                 name="password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="••••••••"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-700 font-medium"
+                placeholder="cliente123"
               />
             </div>
 
@@ -124,36 +101,28 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             </button>
           </form>
 
-          {/* Demo Buttons */}
+          {/* Información de cuentas de prueba */}
           <div className="mt-6 border-t pt-6">
             <div className="text-center">
-              <button
-                onClick={() => setShowDemo(!showDemo)}
-                className="text-sm text-blue-600 hover:text-blue-500"
-              >
-                {showDemo ? 'Ocultar' : 'Ver'} cuentas de demostración
-              </button>
-            </div>
-
-            {showDemo && (
-              <div className="mt-4 space-y-3">
-                <button
-                  onClick={() => loginDemo('superadmin')}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-4 rounded-md hover:from-purple-700 hover:to-blue-700 flex items-center justify-center"
-                >
-                  <span className="mr-2">👑</span>
-                  SuperAdmin - Panel Ejecutivo
-                </button>
-                
-                <button
-                  onClick={() => loginDemo('cliente')}
-                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-2 px-4 rounded-md hover:from-green-700 hover:to-blue-700 flex items-center justify-center"
-                >
-                  <span className="mr-2">🏢</span>
-                  Cliente - Sistema Básico
-                </button>
+              <p className="text-sm text-gray-600 mb-3">Cuentas de prueba disponibles:</p>
+              <div className="space-y-2 text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
+                <div className="flex justify-between">
+                  <span className="font-medium">🔧 SuperAdmin:</span>
+                  <span className="font-mono">admin@contabilidad.pro</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">🏢 Cliente:</span>
+                  <span className="font-mono">cliente@empresa.com</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">🔐 Contraseña:</span>
+                  <span className="font-mono">admin123 / cliente123</span>
+                </div>
               </div>
-            )}
+              <p className="text-xs text-gray-400 mt-2">
+                El sistema identificará automáticamente tu tipo de usuario
+              </p>
+            </div>
           </div>
         </div>
 

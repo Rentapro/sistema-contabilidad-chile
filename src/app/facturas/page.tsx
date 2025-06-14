@@ -2,14 +2,57 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { api, initializeData } from '@/data/store';
 import { Factura, Cliente, DetalleFactura } from '@/types';
 import { formatCurrency, formatDate, generateInvoiceNumber, calculateIVA } from '@/lib/utils';
+import { facturacionService, Factura as FacturaDB, FacturaCreate } from '@/services/facturacionService';
+import { clienteService, Cliente as ClienteDB } from '@/services/clienteService';
+import { useSII } from '@/hooks/useSII';
+import { DocumentoSII } from '@/services/siiService';
+
+// Funciones adaptadoras para convertir entre tipos de BD y tipos de interfaz
+const adaptarFacturaDB = (facturaDB: FacturaDB): Factura => ({
+  id: facturaDB.id,
+  numero: facturaDB.numero_factura,
+  clienteId: facturaDB.cliente_id || '',
+  fecha: new Date(facturaDB.fecha_emision),
+  fechaVencimiento: new Date(facturaDB.fecha_vencimiento || facturaDB.fecha_emision),
+  detalles: facturaDB.detalles?.map(d => ({
+    id: d.id,
+    productoId: d.producto_id || d.descripcion,
+    cantidad: d.cantidad,
+    precioUnitario: d.precio_unitario,
+    descuento: d.descuento_porcentaje || 0,
+    subtotal: d.monto_neto
+  })) || [],
+  subtotal: facturaDB.monto_neto,
+  iva: facturaDB.monto_iva,
+  total: facturaDB.monto_total,
+  estado: facturaDB.estado,
+  tipoDocumento: facturaDB.tipo_documento === 33 ? 'factura_electronica' : 
+                 facturaDB.tipo_documento === 39 ? 'boleta' : 'factura_electronica',
+  folioSII: facturaDB.folio.toString(),
+  timbreSII: facturaDB.track_id,
+  notas: facturaDB.observaciones
+});
+
+const adaptarClienteDB = (clienteDB: ClienteDB): Cliente => ({
+  id: clienteDB.id,
+  nombre: clienteDB.razon_social,
+  email: clienteDB.email || '',
+  telefono: clienteDB.telefono || '',
+  direccion: clienteDB.direccion || '',
+  rut: clienteDB.rut,
+  giro: clienteDB.nombre_fantasia || '',
+  fechaCreacion: new Date(clienteDB.created_at),
+  activo: clienteDB.activo,
+  tipoContribuyente: 'primera_categoria' // Por defecto
+});
 
 export default function FacturasPage() {
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     clienteId: '',
     fecha: new Date().toISOString().split('T')[0],
@@ -21,13 +64,25 @@ export default function FacturasPage() {
   ]);
 
   useEffect(() => {
-    initializeData();
     loadData();
   }, []);
-
-  const loadData = () => {
-    setFacturas(api.getFacturas());
-    setClientes(api.getClientes());
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [facturasData, clientesData] = await Promise.all([
+        facturacionService.obtenerFacturas(),
+        clienteService.obtenerClientes()
+      ]);
+      setFacturas(facturasData.map(adaptarFacturaDB));
+      setClientes(clientesData.map(adaptarClienteDB));
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      // Fallback a API local si falla la conexión a la BD
+      // setFacturas(api.getFacturas());
+      // setClientes(api.getClientes());
+    } finally {
+      setLoading(false);
+    }
   };
 
   const calcularSubtotalDetalle = (detalle: Omit<DetalleFactura, 'id' | 'subtotal'>) => {
@@ -41,8 +96,7 @@ export default function FacturasPage() {
     const total = subtotal + iva;
     return { subtotal, iva, total };
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.clienteId || detalles.some(d => !d.productoId || d.cantidad <= 0 || d.precioUnitario <= 0)) {
@@ -52,26 +106,33 @@ export default function FacturasPage() {
 
     const { subtotal, iva, total } = calcularTotales();
     
-    const nuevaFactura: Omit<Factura, 'id'> = {
-      numero: generateInvoiceNumber(),
-      clienteId: formData.clienteId,
-      fecha: new Date(formData.fecha),
-      fechaVencimiento: new Date(formData.fechaVencimiento || formData.fecha),
-      detalles: detalles.map((detalle, index) => ({
-        id: `det-${index}`,
-        ...detalle,
-        subtotal: calcularSubtotalDetalle(detalle),
-      })),
-      subtotal,
-      iva,
-      total,
-      estado: 'pendiente',
-      notas: formData.notas,
-    };
+    try {
+      setLoading(true);
+      
+      const nuevaFacturaDB: FacturaCreate = {
+        cliente_id: formData.clienteId,
+        tipo_documento: 33, // Factura electrónica
+        fecha_emision: formData.fecha,
+        fecha_vencimiento: formData.fechaVencimiento || formData.fecha,
+        observaciones: formData.notas,
+        detalles: detalles.map(detalle => ({
+          descripcion: detalle.productoId,
+          cantidad: detalle.cantidad,
+          precio_unitario: detalle.precioUnitario,
+          descuento_porcentaje: detalle.descuento,
+          exento_iva: false
+        }))
+      };
 
-    api.createFactura(nuevaFactura);
-    resetForm();
-    loadData();
+      await facturacionService.crearFactura(nuevaFacturaDB);
+      resetForm();
+      await loadData();
+    } catch (error) {
+      console.error('Error al crear factura:', error);
+      alert('Error al crear la factura. Por favor inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -93,11 +154,17 @@ export default function FacturasPage() {
     if (detalles.length > 1) {
       setDetalles(detalles.filter((_, i) => i !== index));
     }
-  };
-
-  const updateEstadoFactura = (id: string, nuevoEstado: 'pendiente' | 'pagada' | 'vencida' | 'cancelada') => {
-    api.updateFactura(id, { estado: nuevoEstado });
-    loadData();
+  };  const updateEstadoFactura = async (id: string, nuevoEstado: 'pendiente' | 'pagada' | 'vencida' | 'anulada') => {
+    try {
+      setLoading(true);
+      await facturacionService.actualizarEstadoFactura(id, nuevoEstado);
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar estado de factura:', error);
+      alert('Error al actualizar el estado de la factura.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getClienteNombre = (clienteId: string) => {
@@ -359,12 +426,11 @@ export default function FacturasPage() {
                           className="text-green-600 hover:text-green-800 text-sm"
                         >
                           Marcar como Pagada
-                        </button>
-                        <button
-                          onClick={() => updateEstadoFactura(factura.id, 'cancelada')}
+                        </button>                        <button
+                          onClick={() => updateEstadoFactura(factura.id, 'anulada')}
                           className="text-red-600 hover:text-red-800 text-sm"
                         >
-                          Cancelar
+                          Anular
                         </button>
                       </div>
                     )}

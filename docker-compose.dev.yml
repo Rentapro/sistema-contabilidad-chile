@@ -1,0 +1,64 @@
+# Docker Compose para desarrollo
+version: '3.8'
+
+services:
+  # Aplicación en modo desarrollo
+  app-dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: sistema-contabilidad-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - ENCRYPTION_KEY=development-key-change-in-production-32
+      - JWT_SECRET=development-jwt-secret
+      - SESSION_SECRET=development-session-secret
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+    networks:
+      - contabilidad-dev-network
+    command: npm run dev
+
+  # Base de datos PostgreSQL para desarrollo
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: sistema-contabilidad-db-dev
+    environment:
+      - POSTGRES_DB=contabilidad_dev
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD=dev_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    networks:
+      - contabilidad-dev-network
+
+  # Redis para desarrollo
+  redis-dev:
+    image: redis:7-alpine
+    container_name: sistema-contabilidad-redis-dev
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_dev_data:/data
+    restart: unless-stopped
+    networks:
+      - contabilidad-dev-network
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  contabilidad-dev-network:
+    driver: bridge

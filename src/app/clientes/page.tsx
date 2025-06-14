@@ -2,13 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { api, initializeData } from '@/data/store';
 import { Cliente } from '@/types';
+import { clienteService, Cliente as ClienteDB, ClienteCreate } from '@/services/clienteService';
 import { formatDate, validateRUT, validateEmail, formatRUT } from '@/lib/utils';
+
+// Función adaptadora para convertir ClienteDB a Cliente
+const adaptarClienteDB = (clienteDB: ClienteDB): Cliente => ({
+  id: clienteDB.id,
+  nombre: clienteDB.razon_social,
+  email: clienteDB.email || '',
+  telefono: clienteDB.telefono || '',
+  direccion: clienteDB.direccion || '',
+  rut: clienteDB.rut,
+  giro: clienteDB.nombre_fantasia || '',
+  fechaCreacion: new Date(clienteDB.created_at),
+  activo: clienteDB.activo,
+  tipoContribuyente: 'primera_categoria' // Por defecto
+});
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -22,12 +37,21 @@ export default function ClientesPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    initializeData();
     loadClientes();
   }, []);
 
-  const loadClientes = () => {
-    setClientes(api.getClientes());
+  const loadClientes = async () => {
+    setLoading(true);
+    try {
+      const clientesData = await clienteService.obtenerClientes();
+      setClientes(clientesData.map(adaptarClienteDB));
+    } catch (error) {
+      console.error('Error al cargar clientes:', error);
+      // Fallback a datos locales si falla la conexión
+      // setClientes(api.getClientes());
+    } finally {
+      setLoading(false);
+    }
   };
 
   const validateForm = () => {
@@ -43,28 +67,42 @@ export default function ClientesPage() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    if (editingCliente) {
-      api.updateCliente(editingCliente.id, {
-        ...formData,
-        rut: formData.rut.toUpperCase(),
-      });
-    } else {
-      api.createCliente({
-        ...formData,
-        rut: formData.rut.toUpperCase(),
-        fechaCreacion: new Date(),
-        activo: true,
-      });
-    }
+    setLoading(true);
+    try {
+      if (editingCliente) {
+        await clienteService.actualizarCliente(editingCliente.id, {
+          razon_social: formData.nombre,
+          email: formData.email || undefined,
+          telefono: formData.telefono || undefined,
+          direccion: formData.direccion || undefined,
+          rut: formData.rut.toUpperCase(),
+          nombre_fantasia: formData.giro || undefined,
+        });
+      } else {
+        const nuevoClienteDB: ClienteCreate = {
+          rut: formData.rut.toUpperCase(),
+          razon_social: formData.nombre,
+          email: formData.email || undefined,
+          telefono: formData.telefono || undefined,
+          direccion: formData.direccion || undefined,
+          nombre_fantasia: formData.giro || undefined,
+        };
+        await clienteService.crearCliente(nuevoClienteDB);
+      }
 
-    resetForm();
-    loadClientes();
+      resetForm();
+      await loadClientes();
+    } catch (error) {
+      console.error('Error al guardar cliente:', error);
+      alert('Error al guardar el cliente. Por favor inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -95,11 +133,18 @@ export default function ClientesPage() {
     setEditingCliente(cliente);
     setShowForm(true);
   };
-
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
-      api.deleteCliente(id);
-      loadClientes();
+      setLoading(true);
+      try {
+        await clienteService.eliminarCliente(id);
+        await loadClientes();
+      } catch (error) {
+        console.error('Error al eliminar cliente:', error);
+        alert('Error al eliminar el cliente.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
