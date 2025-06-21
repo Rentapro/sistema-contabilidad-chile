@@ -21,7 +21,10 @@ import {
   Calendar,
   Building,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  BookOpen,
+  Video,
+  Code
 } from 'lucide-react';
 import LogoutButton from './LogoutButton';
 
@@ -32,7 +35,7 @@ interface MenuItem {
   href: string;
   icono: React.ReactNode;
   badge?: number;
-  categoria: 'principal' | 'gestion' | 'reportes' | 'configuracion';
+  categoria: 'principal' | 'gestion' | 'reportes' | 'configuracion' | 'aprendizaje';
   estado?: 'activo' | 'beta' | 'nuevo';
 }
 
@@ -153,10 +156,38 @@ const menuItems: MenuItem[] = [
   {
     id: 'datos-oficiales-chile',
     titulo: 'Datos Oficiales Chile',
-    descripcion: 'SII, Banco Central, INE',
-    href: '/datos-oficiales-chile',
+    descripcion: 'SII, Banco Central, INE',    href: '/datos-oficiales-chile',
     icono: <BarChart3 className="w-5 h-5" />,
     categoria: 'configuracion',
+    estado: 'nuevo'
+  },
+  
+  // Aprendizaje
+  {
+    id: 'centro-aprendizaje',
+    titulo: 'Centro de Aprendizaje',
+    descripcion: 'Tutoriales y recursos',
+    href: '/tutoriales',
+    icono: <BookOpen className="w-5 h-5" />,
+    categoria: 'aprendizaje',
+    estado: 'nuevo'
+  },
+  {
+    id: 'video-tutoriales',
+    titulo: 'Video Tutoriales',
+    descripcion: 'Aprende viendo',
+    href: '/videos',
+    icono: <Video className="w-5 h-5" />,
+    categoria: 'aprendizaje',
+    badge: 5
+  },
+  {
+    id: 'demos-interactivas',
+    titulo: 'Demos Interactivas',
+    descripcion: 'Explora características',
+    href: '/demos',
+    icono: <Code className="w-5 h-5" />,
+    categoria: 'aprendizaje',
     estado: 'nuevo'
   }
 ];
@@ -170,20 +201,19 @@ export default function NavigationSidebar() {
     const hasActiveItem = (categoria: string) => {
       const items = menuItems.filter(item => item.categoria === categoria);
       return items.some(item => pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href)));
-    };
-
-    return {
+    };    return {
       gestion: !hasActiveItem('gestion'),
       reportes: !hasActiveItem('reportes'),
-      configuracion: !hasActiveItem('configuracion')
+      configuracion: !hasActiveItem('configuracion'),
+      aprendizaje: !hasActiveItem('aprendizaje')
     };
   });
-
   const categorias = {
     principal: 'Principal',
     gestion: 'Gestión',
     reportes: 'Reportes',
-    configuracion: 'Configuración'
+    configuracion: 'Configuración',
+    aprendizaje: 'Aprendizaje'
   };
 
   const getEstadoBadge = (estado?: string) => {
