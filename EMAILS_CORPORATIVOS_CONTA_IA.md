@@ -6,11 +6,12 @@
 
 | Función | Email | Responsabilidad |
 |---------|-------|-----------------|
-| **Conta-IA Principal** | `contaia.czsdigital@gmail.com` | Email principal del sistema y envíos SMTP |
-| **Contacto General** | `contacto@conta-ia.cl` | Consultas generales, demos, comercial |
+| **Contacto General** | `contacto@conta-ia.cl` | Email principal del sistema, consultas generales, demos |
 | **Contador** | `contador@conta-ia.cl` | Consultas contables especializadas |
 | **Operaciones** | `operaciones@conta-ia.cl` | Gestión operativa y facturación |
 | **Soporte Técnico** | `soporte@conta-ia.cl` | Soporte técnico y problemas del sistema |
+
+**Nota**: `contaia.czsdigital@gmail.com` solo se usa para SMTP (envío de emails), pero todos los emails públicos son corporativos.
 
 ## 🚀 Routing Inteligente de Emails
 
@@ -39,18 +40,21 @@
 
 ### Variables de Entorno (`.env.local`):
 ```bash
-# SMTP Configuration
+# SMTP Configuration (Solo para envío)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=contaia.czsdigital@gmail.com
 SMTP_PASS=[PASSWORD_APLICACION_GMAIL]
 
-# Routing de Emails
+# Email Principal Corporativo
+SENDGRID_FROM_EMAIL=contacto@conta-ia.cl
+
+# Routing de Emails Corporativos
 EMAIL_CONTACTO=contacto@conta-ia.cl
 EMAIL_CONTADOR=contador@conta-ia.cl
 EMAIL_OPERACIONES=operaciones@conta-ia.cl
 EMAIL_SOPORTE=soporte@conta-ia.cl
-EMAIL_ADMIN=contaia.czsdigital@gmail.com
+EMAIL_ADMIN=contacto@conta-ia.cl
 ```
 
 ### Función de Routing (API):

@@ -2,12 +2,13 @@
 
 ## 📧 Configuración Actual - Conta-IA
 
-### Emails Corporativos Definidos:
-- `contaia.czsdigital@gmail.com` (Principal/SMTP)
-- `contacto@conta-ia.cl` (Contacto general)
+### Emails Corporativos Principales:
+- `contacto@conta-ia.cl` (Principal y contacto general)
 - `contador@conta-ia.cl` (Consultas contables)
 - `operaciones@conta-ia.cl` (Operaciones)
 - `soporte@conta-ia.cl` (Soporte técnico)
+
+**Nota**: `contaia.czsdigital@gmail.com` solo para SMTP (backend)
 
 ## 🔧 Próximos Pasos para Activar el Sistema
 
@@ -39,6 +40,11 @@ contador@conta-ia.cl → contaia.czsdigital@gmail.com
 operaciones@conta-ia.cl → contaia.czsdigital@gmail.com
 soporte@conta-ia.cl → contaia.czsdigital@gmail.com
 ```
+
+De esta forma:
+- Los usuarios ven emails profesionales `@conta-ia.cl`
+- Todo llega a una sola bandeja de entrada Gmail
+- Fácil de gestionar inicialmente
 
 **Dónde configurar**: Panel del proveedor del dominio `conta-ia.cl`
 

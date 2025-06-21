@@ -132,9 +132,8 @@ export async function POST(req: NextRequest) {
     // Intentar enviar email
     try {
       const transporter = createEmailTransporter();
-      
-      await transporter.sendMail({
-        from: process.env.SMTP_USER || process.env.ADMIN_EMAIL,
+        await transporter.sendMail({
+        from: `"${process.env.SENDGRID_FROM_NAME}" <${process.env.SENDGRID_FROM_EMAIL}>`,
         to: emailDestino,
         subject: `📧 ${tipoLabels[datos.tipo]} de ${datos.nombre} - ${datos.empresa || 'Cliente Potencial'}`,
         html: htmlContent
