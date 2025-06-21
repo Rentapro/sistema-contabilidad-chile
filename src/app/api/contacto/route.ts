@@ -12,16 +12,14 @@ interface FormularioContacto {
 
 // Función para crear el transportador de email
 function createEmailTransporter() {
-  // Configuración para Gmail (temporal) o SMTP personalizado
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false, // true para 465, false para otros puertos
+    secure: false,
     auth: {
-      user: process.env.SMTP_USER || process.env.ADMIN_EMAIL,
-      pass: process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
     },
-    // Para Gmail con autenticación de 2 factores
     tls: {
       rejectUnauthorized: false
     }
@@ -29,16 +27,16 @@ function createEmailTransporter() {
 }
 
 // Función para determinar el email destino según el tipo de consulta
-function getEmailDestinoPorTipo(tipo: string): string | null {
+function getEmailDestinoPorTipo(tipo: string): string {
   const routing = {
-    'contacto': process.env.NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL,
-    'demo': process.env.NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL,
-    'comercial': process.env.NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL,
-    'soporte': process.env.SOPORTE_EMAIL || process.env.ADMIN_EMAIL,
-    'consulta_contable': process.env.CONTADOR_EMAIL || process.env.ADMIN_EMAIL
+    'contacto': process.env.EMAIL_CONTACTO || 'contacto@conta-ia.cl',
+    'demo': process.env.EMAIL_CONTACTO || 'contacto@conta-ia.cl',
+    'comercial': process.env.EMAIL_CONTACTO || 'contacto@conta-ia.cl',
+    'soporte': process.env.EMAIL_SOPORTE || 'soporte@conta-ia.cl',
+    'consulta_contable': process.env.EMAIL_CONTADOR || 'contador@conta-ia.cl'
   };
 
-  return routing[tipo as keyof typeof routing] || process.env.ADMIN_EMAIL || null;
+  return routing[tipo as keyof typeof routing] || process.env.EMAIL_ADMIN || 'contacto@conta-ia.cl';
 }
 
 export async function POST(req: NextRequest) {
