@@ -1,5 +1,11 @@
-import WorkflowAutomationSystem from '@/components/WorkflowAutomationSystem';
+'use client';
 
-export default function WorkflowPage() {
-  return <WorkflowAutomationSystem />;
+import WorkflowAutomation from '@/components/WorkflowAutomation';
+
+export default function WorkflowAutomationPage() {
+  return (
+    <div className="container mx-auto p-6">
+      <WorkflowAutomation />
+    </div>
+  );
 }

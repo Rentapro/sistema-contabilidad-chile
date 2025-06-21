@@ -5,6 +5,47 @@ import { PERMISOS_POR_ROL } from '@/types/auth';
 
 // Simulación de base de datos de usuarios
 const USUARIOS_MOCK: Usuario[] = [
+  // Usuario de prueba: SuperAdmin (correo: 1, clave: 1)
+  {
+    id: 'superadmin-test',
+    email: '1',
+    nombre: 'Super',
+    apellido: 'Administrador',
+    rol: 'superadmin',
+    licencia: 'superadmin',
+    fechaCreacion: new Date('2024-01-01'),
+    ultimoAcceso: new Date(),
+    activo: true,
+    permisos: [...PERMISOS_POR_ROL.superadmin]
+  },
+  // Usuario de prueba: Contador (correo: 2, clave: 2)
+  {
+    id: 'contador-test',
+    email: '2',
+    nombre: 'Carlos',
+    apellido: 'Contador',
+    rol: 'contador',
+    licencia: 'premium',
+    fechaCreacion: new Date('2024-02-01'),
+    ultimoAcceso: new Date(),
+    activo: true,
+    permisos: [...PERMISOS_POR_ROL.contador]
+  },
+  // Usuario de prueba: Cliente/Microempresa (correo: 3, clave: 3)
+  {
+    id: 'cliente-test',
+    email: '3',
+    nombre: 'Ana',
+    apellido: 'Microempresaria',
+    rol: 'cliente_basico',
+    empresa: 'empresa-test',
+    licencia: 'basico',
+    fechaCreacion: new Date('2024-03-01'),
+    ultimoAcceso: new Date(),
+    activo: true,
+    permisos: [...PERMISOS_POR_ROL.cliente_basico]
+  },
+  // Usuarios originales del sistema
   {
     id: 'superadmin-1',
     email: 'admin@contabilidad.pro',
@@ -15,8 +56,8 @@ const USUARIOS_MOCK: Usuario[] = [
     fechaCreacion: new Date('2024-01-01'),
     ultimoAcceso: new Date(),
     activo: true,
-    permisos: PERMISOS_POR_ROL.superadmin
-  },  {
+    permisos: [...PERMISOS_POR_ROL.superadmin]
+  },{
     id: 'cliente-1',
     email: 'cliente@empresa.com',
     nombre: 'Juan',
@@ -27,7 +68,7 @@ const USUARIOS_MOCK: Usuario[] = [
     fechaCreacion: new Date('2024-06-01'),
     ultimoAcceso: new Date(),
     activo: true,
-    permisos: PERMISOS_POR_ROL.cliente_basico
+    permisos: [...PERMISOS_POR_ROL.cliente_basico]
   },
   {
     id: 'admin-empresa-1',
@@ -40,12 +81,38 @@ const USUARIOS_MOCK: Usuario[] = [
     fechaCreacion: new Date('2024-03-01'),
     ultimoAcceso: new Date(),
     activo: true,
-    permisos: PERMISOS_POR_ROL.admin_empresa
+    permisos: [...PERMISOS_POR_ROL.admin_empresa]
   }
 ];
 
 // Simulación de base de datos de empresas
 const EMPRESAS_MOCK: Empresa[] = [
+  // Empresa de prueba para usuario cliente
+  {
+    id: 'empresa-test',
+    nombre: 'Mi Microempresa Ltda.',
+    rut: '77.888.999-0',
+    giro: 'Comercio al por menor',
+    direccion: 'Calle Los Emprendedores 123, Santiago',
+    telefono: '+56 9 8765 4321',
+    email: 'contacto@mimicroempresa.cl',
+    tipoLicencia: 'basico',
+    fechaVencimiento: new Date('2025-06-30'),
+    propietarioId: 'superadmin-test',
+    administradores: ['cliente-test'],
+    contadores: [],
+    configuracion: {
+      modulosHabilitados: ['facturacion', 'reportes'],
+      limitesUsuarios: 2,
+      limitesFacturas: 100,
+      limitesClientes: 50,
+      automatizacionIA: false,
+      reportesAvanzados: false,
+      integracionesBancarias: false
+    },
+    activa: true,
+    fechaCreacion: new Date('2024-03-01')
+  },
   {
     id: 'empresa-1',
     nombre: 'Empresa Demo S.A.',
@@ -100,7 +167,6 @@ const EMPRESAS_MOCK: Empresa[] = [
 
 class AuthService {
   private sesionActual: Sesion | null = null;
-
   // Simular login
   async login(email: string, password: string): Promise<{ success: boolean; usuario?: Usuario; error?: string }> {
     // Simulación de verificación
@@ -110,9 +176,18 @@ class AuthService {
       return { success: false, error: 'Usuario no encontrado o inactivo' };
     }
 
-    // En producción, aquí verificarías la contraseña hasheada
-    if (password !== 'admin123' && password !== 'cliente123') {
-      return { success: false, error: 'Contraseña incorrecta' };
+    // Credenciales de prueba simples
+    const credencialesValidas = (
+      (email === '1' && password === '1') ||    // SuperAdmin
+      (email === '2' && password === '2') ||    // Contador
+      (email === '3' && password === '3') ||    // Cliente
+      // Credenciales originales del sistema
+      (password === 'admin123') ||
+      (password === 'cliente123')
+    );
+
+    if (!credencialesValidas) {
+      return { success: false, error: 'Credenciales incorrectas' };
     }
 
     // Crear sesión
@@ -225,6 +300,39 @@ class AuthService {
     this.sesionActual.empresaActual = empresaId;
     return true;
   }
+
+  /**
+   * Obtener configuración SII desde localStorage
+   */
+  getSIIConfig(): { rut?: string; token?: string } | null {
+    if (typeof window === 'undefined') return null;
+    const data = window.localStorage.getItem('siiConfig');
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Guardar configuración SII en localStorage
+   */
+  saveSIIConfig(config: { rut: string; token: string }): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('siiConfig', JSON.stringify(config));
+  }
+
+  /**
+   * Eliminar configuración SII de localStorage
+   */
+  clearSIIConfig(): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem('siiConfig');
+  }
 }
 
-export const authService = new AuthService();
+// Instancia global de AuthService
+const authService = new AuthService();
+export default authService;
+export { authService };

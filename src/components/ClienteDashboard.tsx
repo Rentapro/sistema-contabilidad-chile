@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { useAuth } from '@/contexts/AuthContext';
 import { PlanUpgradeModal } from './PlanUpgradeModal';
+import HeaderWithLogout from './HeaderWithLogout';
 
 interface ClienteDashboardProps {
   usuario: Usuario;
@@ -85,92 +86,152 @@ export default function ClienteDashboard({ usuario }: ClienteDashboardProps) {
       verificacion: () => puedeUsarIA()
     }
   ];
-
   if (cargando) {
     return (
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600 shadow-lg"></div>
+          <div className="absolute inset-0 w-20 h-20 border-4 border-purple-200 rounded-full animate-ping opacity-20"></div>
+          <div className="absolute inset-2 w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-10 animate-pulse"></div>
+        </div>
+        <div className="absolute mt-32 text-slate-600 font-medium">
+          Cargando panel de cliente...
         </div>
       </div>
     );
   }
-
+  
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <div className="px-4 py-6 sm:px-0">
-        {/* Header del Cliente */}
-        <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                🏢 Panel de Contabilidad
-              </h1>
-              <p className="text-blue-100 mt-2">
-                Bienvenido {usuario.nombre} - {usuario.empresa || 'Sistema Básico'}
-              </p>
-            </div>
-            <div className="text-right text-white">
-              <div className="text-sm opacity-90">Plan Actual</div>
-              <div className="text-xl font-bold">{usuario.licencia.toUpperCase()}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Métricas del Cliente */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-emerald-100">      <HeaderWithLogout 
+        title="🏢 Panel de Contabilidad"
+        subtitle={`Bienvenido ${usuario.nombre} - ${usuario.empresa || 'Sistema Básico'}`}
+      />
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {/* Banner de plan con glass morphism */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-green-600 to-blue-600 p-1 mb-8 shadow-2xl">
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-white text-lg font-semibold mb-2 opacity-90">
+                    Plan Activo
+                  </h2>
+                  <p className="text-white/80 text-sm">
+                    Gestión contable simplificada
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-black text-white drop-shadow-lg">
+                    {usuario.licencia.toUpperCase()}
+                  </div>
+                  <div className="flex items-center text-white/90 text-sm mt-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                    Sistema activo
+                  </div>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Facturas del Mes</p>
-                <p className="text-2xl font-semibold text-gray-900">{metricas.facturasMes}</p>
-              </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-green-100">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Ingresos del Mes</p>
-                <p className="text-2xl font-semibold text-gray-900">{formatCurrency(metricas.ingresosMes)}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-red-100">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Gastos del Mes</p>
-                <p className="text-2xl font-semibold text-gray-900">{formatCurrency(metricas.gastosMes)}</p>
+        {/* Métricas del Cliente con glass morphism */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-1 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-white/95 backdrop-blur-lg rounded-xl p-6 h-full">
+              <div className="flex items-center">
+                <div className="relative">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 shadow-lg">
+                    <svg className="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 bg-blue-500/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="text-sm font-medium text-slate-600">Facturas del Mes</p>
+                  <p className="text-2xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    {metricas.facturasMes}
+                  </p>
+                  <div className="flex items-center text-blue-600 text-xs mt-1">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1 animate-pulse"></div>
+                    Este mes
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-purple-100">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-1 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-white/95 backdrop-blur-lg rounded-xl p-6 h-full">
+              <div className="flex items-center">
+                <div className="relative">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 shadow-lg">
+                    <svg className="w-6 h-6 text-emerald-600 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 bg-emerald-500/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="text-sm font-medium text-slate-600">Ingresos del Mes</p>
+                  <p className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                    {formatCurrency(metricas.ingresosMes)}
+                  </p>
+                  <div className="flex items-center text-emerald-600 text-xs mt-1">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1 animate-pulse"></div>
+                    +8% vs anterior
+                  </div>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Clientes Activos</p>
-                <p className="text-2xl font-semibold text-gray-900">{metricas.clientesActivos}</p>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl p-1 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-white/95 backdrop-blur-lg rounded-xl p-6 h-full">
+              <div className="flex items-center">
+                <div className="relative">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-red-100 to-pink-100 shadow-lg">
+                    <svg className="w-6 h-6 text-red-600 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 bg-red-500/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="text-sm font-medium text-slate-600">Gastos del Mes</p>
+                  <p className="text-2xl font-black bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
+                    {formatCurrency(metricas.gastosMes)}
+                  </p>
+                  <div className="flex items-center text-red-600 text-xs mt-1">
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1 animate-pulse"></div>
+                    Control necesario
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl p-1 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-white/95 backdrop-blur-lg rounded-xl p-6 h-full">
+              <div className="flex items-center">
+                <div className="relative">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-purple-100 to-violet-100 shadow-lg">
+                    <svg className="w-6 h-6 text-purple-600 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 bg-purple-500/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <p className="text-sm font-medium text-slate-600">Clientes Activos</p>
+                  <p className="text-2xl font-black bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
+                    {metricas.clientesActivos}
+                  </p>
+                  <div className="flex items-center text-purple-600 text-xs mt-1">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-1 animate-pulse"></div>
+                    Base creciente
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -471,8 +532,7 @@ export default function ClienteDashboard({ usuario }: ClienteDashboardProps) {
                   <span className="font-medium">✓</span> Automatización IA
                 </div>
                 <div className="text-blue-700">
-                  <span className="font-medium">✓</span> Reportes avanzados
-                </div>
+                  <span className="font-medium">✓</span> Reportes avanzados                </div>
                 <div className="text-blue-700">
                   <span className="font-medium">✓</span> Integraciones bancarias
                 </div>
@@ -488,6 +548,7 @@ export default function ClienteDashboard({ usuario }: ClienteDashboardProps) {
         onClose={() => setMostrarModalUpgrade(false)}
         planActual={empresaActual?.tipoLicencia || usuario.licencia}
       />
+      </div>
     </div>
   );
 }

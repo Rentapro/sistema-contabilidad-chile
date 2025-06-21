@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  // No incluir archivos para tipo checking
+  "include": ["*.ts"]
+}

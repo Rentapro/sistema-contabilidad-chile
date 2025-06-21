@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { authService } from '@/services/authService';
+import authService from '@/services/authService';
 
 export interface UsageLimits {
   facturas: {

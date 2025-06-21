@@ -4,7 +4,7 @@
 		{
 			"label": "Instalar dependencias y ejecutar desarrollo",
 			"type": "shell",
-			"command": "npm install && npm run dev",
+			"command": "npm install; npm run dev",
 			"group": "build",
 			"isBackground": true,
 			"problemMatcher": [

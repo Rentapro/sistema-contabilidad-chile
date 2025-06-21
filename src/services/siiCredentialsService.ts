@@ -170,7 +170,7 @@ class SIICredentialsService {
       const encryptedData = localStorage.getItem(this.STORAGE_KEY);
       if (!encryptedData) return null;
 
-      const decryptedData = decrypt(encryptedData);
+      const decryptedData = await decrypt(encryptedData);
       return JSON.parse(decryptedData);
     } catch (error) {
       console.error('Error obteniendo credenciales:', error);
@@ -184,7 +184,7 @@ class SIICredentialsService {
   private async saveCredentials(credentials: SIICredentials): Promise<void> {
     try {
       const dataToEncrypt = JSON.stringify(credentials);
-      const encryptedData = encrypt(dataToEncrypt);
+      const encryptedData = await encrypt(dataToEncrypt);
       localStorage.setItem(this.STORAGE_KEY, encryptedData);
       
       console.log('🔐 Credenciales SII guardadas de forma segura');

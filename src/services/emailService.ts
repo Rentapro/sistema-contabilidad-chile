@@ -1,66 +1,338 @@
-/**
- * Servicio de Email Real - Múltiples Proveedores
- * Sistema Contabilidad Chile
- */
+import nodemailer from 'nodemailer';
 
-import configManager from '@/lib/config';
-
-export interface EmailTemplate {
-  to: string | string[]
-  subject: string
-  html: string
-  text?: string
-  attachments?: Array<{
-    content: string
-    filename: string
-    type: string
-  }>
+interface EmailConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
 }
 
-export class EmailService {
-  private static isConfigured(): boolean {
-    return configManager.isFeatureEnabled('emailNotifications');
+interface EmailData {
+  to: string;
+  subject: string;
+  text?: string;
+  html?: string;
+}
+
+interface FormularioContacto {
+  nombre: string;
+  email: string;
+  empresa?: string;
+  telefono?: string;
+  mensaje: string;
+  tipo: 'contacto' | 'demo' | 'soporte' | 'comercial';
+}
+
+class EmailService {
+  private transporter: nodemailer.Transporter | null = null;
+  private config: EmailConfig | null = null;
+
+  constructor() {
+    this.initializeConfig();
   }
-  
-  /**
-   * Enviar email genérico
-   */
-  static async enviarEmail(template: EmailTemplate): Promise<boolean> {
+
+  private initializeConfig() {
+    // Configuración para Gmail temporal o SMTP personalizado
+    this.config = {
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      user: process.env.SMTP_USER || process.env.ADMIN_EMAIL || '',
+      password: process.env.SMTP_PASSWORD || ''
+    };
+
+    if (this.isConfigured()) {
+      this.createTransporter();
+    }
+  }
+
+  private isConfigured(): boolean {
+    return !!(this.config?.host && this.config?.user && this.config?.password);
+  }
+
+  private createTransporter() {
+    if (!this.config) return;
+
+    this.transporter = nodemailer.createTransporter({
+      host: this.config.host,
+      port: this.config.port,
+      secure: this.config.port === 465,
+      auth: {
+        user: this.config.user,
+        pass: this.config.password
+      }
+    });
+  }
+
+  async sendEmail(emailData: EmailData): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      // Verificar si el servicio está configurado
       if (!this.isConfigured()) {
-        console.warn('⚠️ Servicio de email no configurado. Email no enviado:', template.subject);
-        console.warn('   Destinatario:', template.to);
-        console.warn('   Para configurar, establece SMTP_HOST, SMTP_USER y SMTP_PASSWORD');
-        
-        // En desarrollo, simular éxito
-        if (configManager.getConfig().environment === 'development') {
-          console.log('📧 [SIMULADO] Email enviado exitosamente en modo desarrollo');
-          return true;
-        }
-        
-        return false;
+        console.warn('⚠️ Email service not configured - simulating send');
+        return { 
+          success: true, 
+          messageId: 'simulated-' + Date.now() 
+        };
       }
 
-      // TODO: Implementar envío real con SMTP o SendGrid
-      const emailConfig = configManager.getEmailConfig();
-      
-      // Aquí iría la implementación real con nodemailer o SendGrid
-      console.log('📧 Enviando email real...', {
-        to: template.to,
-        subject: template.subject,
-        host: emailConfig.host
+      if (!this.transporter) {
+        throw new Error('Email transporter not initialized');
+      }
+
+      const result = await this.transporter.sendMail({
+        from: this.config!.user,
+        to: emailData.to,
+        subject: emailData.subject,
+        text: emailData.text,
+        html: emailData.html
       });
-      
-      // Simular envío exitoso por ahora
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('✅ Email enviado exitosamente');
-      return true;
-      
+
+      console.log('✅ Email sent successfully:', result.messageId);
+      return { 
+        success: true, 
+        messageId: result.messageId 
+      };
+
     } catch (error) {
-      console.error('❌ Error enviando email:', error);
-      return false;
+      console.error('❌ Error sending email:', error);
+      return { 
+        success: false, 
+        error: (error as Error).message 
+      };
+    }
+  }
+
+  // Templates de email predefinidos
+  async sendWelcomeEmail(to: string, clientName: string): Promise<{ success: boolean; error?: string }> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">¡Bienvenido al Sistema de Contabilidad!</h2>
+        <p>Hola <strong>${clientName}</strong>,</p>
+        <p>Tu cuenta ha sido creada exitosamente en nuestro sistema de contabilidad.</p>
+        <p>Ya puedes comenzar a gestionar tus facturas, clientes y reportes tributarios.</p>
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>Próximos pasos:</h3>
+          <ul>
+            <li>Configura tu certificado digital SII</li>
+            <li>Importa tus clientes y proveedores</li>
+            <li>Comienza a generar tus primeras facturas</li>
+          </ul>
+        </div>
+        <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
+        <p style="color: #6b7280;">Sistema de Contabilidad Chile</p>
+      </div>
+    `;
+
+    return await this.sendEmail({
+      to,
+      subject: '¡Bienvenido al Sistema de Contabilidad!',
+      html
+    });
+  }
+
+  async sendCertificateExpiryNotification(to: string, daysUntilExpiry: number): Promise<{ success: boolean; error?: string }> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc2626;">⚠️ Certificado Digital por Vencer</h2>
+        <p>Tu certificado digital SII vencerá en <strong>${daysUntilExpiry} días</strong>.</p>
+        <p>Es importante renovarlo antes del vencimiento para evitar interrupciones en tus declaraciones.</p>
+        <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>Acción requerida:</h3>
+          <p>1. Contacta a tu proveedor de certificados digitales</p>
+          <p>2. Solicita la renovación de tu certificado</p>
+          <p>3. Sube el nuevo certificado al sistema</p>
+        </div>
+        <p style="color: #6b7280;">Sistema de Contabilidad Chile</p>
+      </div>
+    `;
+
+    return await this.sendEmail({
+      to,
+      subject: `⚠️ Certificado Digital vence en ${daysUntilExpiry} días`,
+      html
+    });
+  }
+
+  /**
+   * Método para enviar notificaciones de formularios de contacto
+   * Funciona tanto con Gmail como con futuros servicios corporativos
+   */
+  async enviarNotificacionFormulario(datos: FormularioContacto): Promise<{ success: boolean; error?: string }> {
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.NOTIFICATION_EMAIL;
+      
+      if (!adminEmail) {
+        console.warn('⚠️ No hay email de administrador configurado');
+        return { success: false, error: 'Email de administrador no configurado' };
+      }
+
+      const tipoLabels = {
+        contacto: 'Contacto General',
+        demo: 'Solicitud de Demo',
+        soporte: 'Soporte Técnico',
+        comercial: 'Consulta Comercial'
+      };
+
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
+          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #2563eb; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+              📧 ${tipoLabels[datos.tipo]} - Sistema Contabilidad Chile
+            </h2>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="margin: 0; color: #334155;">Información del Contacto</h3>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #374151;">Nombre:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${datos.nombre}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #374151;">Email:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${datos.email}</td>
+              </tr>
+              ${datos.empresa ? `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #374151;">Empresa:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${datos.empresa}</td>
+              </tr>
+              ` : ''}
+              ${datos.telefono ? `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #374151;">Teléfono:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${datos.telefono}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #374151;">Tipo:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${tipoLabels[datos.tipo]}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #374151;">Fecha:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${new Date().toLocaleDateString('es-CL')}</td>
+              </tr>
+            </table>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-top: 20px;">
+              <h3 style="margin: 0 0 10px 0; color: #334155;">Mensaje:</h3>
+              <p style="margin: 0; color: #6b7280; line-height: 1.6; white-space: pre-wrap;">${datos.mensaje}</p>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #dbeafe; border-radius: 8px; border-left: 4px solid #2563eb;">
+              <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                💡 <strong>Responder a:</strong> ${datos.email}<br>
+                🕒 <strong>Prioridad:</strong> ${datos.tipo === 'soporte' ? 'Alta' : datos.tipo === 'demo' ? 'Media' : 'Normal'}
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const textContent = `
+NUEVO ${tipoLabels[datos.tipo].toUpperCase()} - SISTEMA CONTABILIDAD CHILE
+
+Información del Contacto:
+- Nombre: ${datos.nombre}
+- Email: ${datos.email}
+${datos.empresa ? `- Empresa: ${datos.empresa}` : ''}
+${datos.telefono ? `- Teléfono: ${datos.telefono}` : ''}
+- Tipo: ${tipoLabels[datos.tipo]}
+- Fecha: ${new Date().toLocaleDateString('es-CL')}
+
+Mensaje:
+${datos.mensaje}
+
+---
+Responder a: ${datos.email}
+Prioridad: ${datos.tipo === 'soporte' ? 'Alta' : datos.tipo === 'demo' ? 'Media' : 'Normal'}
+      `;
+
+      const resultado = await this.sendEmail({
+        to: adminEmail,
+        subject: `📧 ${tipoLabels[datos.tipo]} de ${datos.nombre} - ${datos.empresa || 'Cliente Potencial'}`,
+        text: textContent,
+        html: htmlContent
+      });
+
+      if (resultado.success) {
+        console.log('✅ Notificación de formulario enviada exitosamente');
+      }
+
+      return resultado;
+
+    } catch (error) {
+      console.error('❌ Error enviando notificación de formulario:', error);
+      return { 
+        success: false, 
+        error: (error as Error).message 
+      };
+    }
+  }
+
+  /**
+   * Método para enviar email de confirmación al usuario que llena el formulario
+   */
+  async enviarConfirmacionUsuario(datos: FormularioContacto): Promise<{ success: boolean; error?: string }> {
+    try {
+      const tipoLabels = {
+        contacto: 'contacto',
+        demo: 'solicitud de demo',
+        soporte: 'solicitud de soporte',
+        comercial: 'consulta comercial'
+      };
+
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
+          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #2563eb; margin-bottom: 20px; text-align: center;">
+              ✅ Hemos recibido tu ${tipoLabels[datos.tipo]}
+            </h2>
+            
+            <p style="color: #374151; line-height: 1.6;">Hola <strong>${datos.nombre}</strong>,</p>
+            
+            <p style="color: #374151; line-height: 1.6;">
+              Gracias por contactarnos. Hemos recibido tu ${tipoLabels[datos.tipo]} y nos pondremos en contacto contigo a la brevedad.
+            </p>
+            
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #334155;">Resumen de tu solicitud:</h3>
+              <p style="margin: 5px 0; color: #6b7280;"><strong>Tipo:</strong> ${tipoLabels[datos.tipo]}</p>
+              <p style="margin: 5px 0; color: #6b7280;"><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-CL')}</p>
+              ${datos.empresa ? `<p style="margin: 5px 0; color: #6b7280;"><strong>Empresa:</strong> ${datos.empresa}</p>` : ''}
+            </div>
+            
+            <p style="color: #374151; line-height: 1.6;">
+              ${datos.tipo === 'demo' ? 'Prepararemos una demostración personalizada para tu empresa.' : ''}
+              ${datos.tipo === 'soporte' ? 'Nuestro equipo técnico revisará tu consulta y te contactará pronto.' : ''}
+              ${datos.tipo === 'comercial' ? 'Un asesor comercial se pondrá en contacto contigo para resolver tus dudas.' : ''}
+              ${datos.tipo === 'contacto' ? 'Revisaremos tu mensaje y te responderemos a la brevedad.' : ''}
+            </p>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #dbeafe; border-radius: 8px; text-align: center;">
+              <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                📞 <strong>¿Necesitas ayuda inmediata?</strong><br>
+                Contáctanos al: +56 9 7373 2599<br>
+                📧 Email: contacto@sistemacontabilidad.cl
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const resultado = await this.sendEmail({
+        to: datos.email,
+        subject: `✅ Confirmación - Tu ${tipoLabels[datos.tipo]} ha sido recibida`,
+        html: htmlContent
+      });
+
+      return resultado;
+
+    } catch (error) {
+      console.error('❌ Error enviando confirmación al usuario:', error);
+      return { 
+        success: false, 
+        error: (error as Error).message 
+      };
     }
   }
 

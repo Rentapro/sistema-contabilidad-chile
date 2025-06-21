@@ -1,0 +1,142 @@
+// Prisma schema for Sistema Contabilidad Chile
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Empresa {
+  id          String   @id @default(cuid())
+  rut         String   @unique
+  razonSocial String
+  nombreFantasia String?
+  email       String?
+  telefono    String?
+  direccion   String?
+  ciudad      String?
+  region      String?
+  actividadEconomica String?
+  tipoLicencia String
+  fechaVencimiento DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  usuarios    Usuario[]
+  clientes    Cliente[]
+  proveedores Proveedor[]
+  facturas    Factura[]
+  gastos      Gasto[]
+  certificados Certificado[]
+  notificaciones Notificacion[]
+  auditLogs   AuditLog[]
+}
+
+model Usuario {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  email       String   @unique
+  nombre      String
+  apellido    String
+  rol         String
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Cliente {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  rut         String   @unique
+  razonSocial String
+  email       String?
+  telefono    String?
+  direccion   String?
+  ciudad      String?
+  region      String?
+  actividadEconomica String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  facturas    Factura[]
+}
+
+model Proveedor {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  nombre      String
+  rut         String
+  email       String?
+  telefono    String?
+  direccion   String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Factura {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  total       Float
+  fechaEmision DateTime
+  fechaVencimiento DateTime
+  estado      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Gasto {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  descripcion String
+  monto       Float
+  categoria   String
+  fecha       DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Certificado {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  nombre      String
+  tipo        String
+  iv          String
+  data        Bytes
+  createdAt   DateTime @default(now())
+}
+
+model Notificacion {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  tipo        String
+  titulo      String
+  mensaje     String
+  prioridad   String
+  estado      String
+  canales     String[]
+  fechaEnvio  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  usuarioId   String?
+  action      String
+  entity      String
+  recordId    String?
+  changes     Json
+  timestamp   DateTime @default(now())
+}

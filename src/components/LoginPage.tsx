@@ -43,22 +43,58 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-gray-600">
             Plataforma Multi-Empresa con IA
           </p>
-        </div>
+        </div>        {/* Login Form */}
+        <div className="bg-white rounded-lg shadow-xl p-8">          {/* Credenciales de Prueba */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-blue-800 mb-3">🧪 Credenciales de Prueba:</h3>
+            
+            {/* Botones de Acceso Rápido */}
+            <div className="grid grid-cols-1 gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => { setEmail('1'); setPassword('1'); }}
+                className="flex items-center justify-between p-2 bg-purple-100 hover:bg-purple-200 border border-purple-300 rounded text-xs transition-colors"
+              >
+                <span className="font-medium text-purple-800">👑 SuperAdministrador</span>
+                <span className="text-purple-600">Email: 1 | Clave: 1</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => { setEmail('2'); setPassword('2'); }}
+                className="flex items-center justify-between p-2 bg-green-100 hover:bg-green-200 border border-green-300 rounded text-xs transition-colors"
+              >
+                <span className="font-medium text-green-800">💼 Contador Profesional</span>
+                <span className="text-green-600">Email: 2 | Clave: 2</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => { setEmail('3'); setPassword('3'); }}
+                className="flex items-center justify-between p-2 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded text-xs transition-colors"
+              >
+                <span className="font-medium text-blue-800">🏪 Microempresario</span>
+                <span className="text-blue-600">Email: 3 | Clave: 3</span>
+              </button>
+            </div>
+            
+            <p className="text-xs text-blue-600 text-center">
+              ↑ Haz clic en cualquier botón para autocompletar las credenciales
+            </p>
+          </div>
 
-        {/* Login Form */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <form className="space-y-6" onSubmit={handleSubmit}>            <div>
+          <form className="space-y-6" onSubmit={handleSubmit}><div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
               </label>              <input
                 id="email"
                 name="email"
-                type="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-700 font-medium"
-                placeholder="cliente@empresa.com"
+                placeholder="Ingresa: 1, 2 o 3"
               />
             </div>
 
@@ -73,7 +109,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-700 font-medium"
-                placeholder="cliente123"
+                placeholder="Ingresa: 1, 2 o 3"
               />
             </div>
 

@@ -20,6 +20,7 @@ import {
   Download,
   BarChart3
 } from 'lucide-react';
+import HeaderWithLogout from './HeaderWithLogout';
 
 interface EmpresaContadorExterno {
   id: string;
@@ -202,29 +203,26 @@ export default function DashboardContadorExterno() {
   const horasTrabajoEstimadas = tareasContables
     .filter(t => t.estado !== 'completada')
     .reduce((sum, t) => sum + t.tiempoEstimado, 0);
-
   if (vistaActual === 'dashboard') {
     return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Panel Contador Externo</h1>
-            <p className="text-gray-600 mt-2">
-              Gestión simplificada de {totalEmpresas} empresas • {tareasTotalesPendientes} tareas pendientes
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="text-sm bg-blue-50 text-blue-700">
-              <Briefcase className="w-4 h-4 mr-1" />
-              Plan Profesional
-            </Badge>
-            <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-              <CheckCircle className="w-4 h-4 mr-1" />
-              {empresasAlDia} al día
-            </Badge>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <HeaderWithLogout 
+          title="Panel Contador Externo"
+          subtitle={`Gestión simplificada de ${totalEmpresas} empresas • ${tareasTotalesPendientes} tareas pendientes`}
+        />
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="space-y-6">
+            {/* Badges informativos */}
+            <div className="flex gap-2 justify-end">
+              <Badge variant="outline" className="text-sm bg-blue-50 text-blue-700">
+                <Briefcase className="w-4 h-4 mr-1" />
+                Plan Profesional
+              </Badge>
+              <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
+                <CheckCircle className="w-4 h-4 mr-1" />
+                {empresasAlDia} al día
+              </Badge>
+            </div>
 
         {/* Métricas principales */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -488,29 +486,31 @@ export default function DashboardContadorExterno() {
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Gestión básica de empresas (máx 50)</li>
                   <li>• Declaraciones F29 automáticas</li>
-                  <li>• Reportes básicos</li>
-                  <li>• Calendario de vencimientos</li>
+                  <li>• Reportes básicos</li>                  <li>• Calendario de vencimientos</li>
                 </ul>
               </div>
             </div>
           </CardContent>
         </Card>
+          </div>
+        </div>
       </div>
     );
   }
-
   if (vistaActual === 'empresas') {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Mis Empresas</h1>
-            <p className="text-gray-600 mt-2">Gestión de {totalEmpresas} empresas asignadas</p>
-          </div>
-          <Button onClick={() => setVistaActual('dashboard')} variant="outline">
-            Volver al Panel
-          </Button>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <HeaderWithLogout 
+          title="Mis Empresas"
+          subtitle={`Gestión de ${totalEmpresas} empresas asignadas`}
+        />
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={() => setVistaActual('dashboard')} variant="outline">
+                Volver al Panel
+              </Button>
+            </div>
 
         <div className="grid gap-4">
           {empresasAsignadas.map((empresa) => (
@@ -566,8 +566,9 @@ export default function DashboardContadorExterno() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          ))}
+            </Card>          ))}
+        </div>
+          </div>
         </div>
       </div>
     );
@@ -575,16 +576,18 @@ export default function DashboardContadorExterno() {
 
   if (vistaActual === 'tareas') {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tareas Contables</h1>
-            <p className="text-gray-600 mt-2">{tareasTotalesPendientes} tareas pendientes • {horasTrabajoEstimadas}h estimadas</p>
-          </div>
-          <Button onClick={() => setVistaActual('dashboard')} variant="outline">
-            Volver al Panel
-          </Button>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <HeaderWithLogout 
+          title="Tareas Contables"
+          subtitle={`${tareasTotalesPendientes} tareas pendientes • ${horasTrabajoEstimadas}h estimadas`}
+        />
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={() => setVistaActual('dashboard')} variant="outline">
+                Volver al Panel
+              </Button>
+            </div>
 
         <div className="grid gap-4">
           {tareasContables.map((tarea) => {
@@ -673,8 +676,7 @@ export default function DashboardContadorExterno() {
                             onClick={() => completarTarea(tarea.id)}
                           >
                             Completar
-                          </Button>
-                        )}
+                          </Button>                        )}
                       </div>
                     </div>
                   </div>
@@ -682,6 +684,8 @@ export default function DashboardContadorExterno() {
               </Card>
             );
           })}
+        </div>
+          </div>
         </div>
       </div>
     );

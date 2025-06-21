@@ -105,7 +105,8 @@ class ConfigurationManager {
       security: {
         jwtSecret: process.env.JWT_SECRET,
         nextAuthSecret: process.env.NEXTAUTH_SECRET,
-        configured: !!(process.env.JWT_SECRET && process.env.NEXTAUTH_SECRET)
+        // En desarrollo, no es crítico tener secretos
+        configured: process.env.NODE_ENV !== 'production' || !!(process.env.JWT_SECRET && process.env.NEXTAUTH_SECRET)
       },
       
       environment: (process.env.NODE_ENV as any) || 'development',
@@ -122,17 +123,22 @@ class ConfigurationManager {
   private validateConfiguration(): void {
     const warnings: string[] = [];
     const errors: string[] = [];
+    const isProd = this.config.environment === 'production';
     
     // Validar configuraciones críticas
     if (!this.config.security.configured) {
-      errors.push('⚠️ Seguridad: JWT_SECRET y NEXTAUTH_SECRET no configurados');
+      if (isProd) {
+        errors.push('⚠️ Seguridad: JWT_SECRET y NEXTAUTH_SECRET no configurados');
+      } else {
+        warnings.push('⚠️ Seguridad: JWT_SECRET y NEXTAUTH_SECRET no configurados (modo desarrollo)');
+      }
     }
     
     // Validar configuraciones opcionales pero recomendadas
     if (!this.config.groq.available && !this.config.openai.available) {
       warnings.push('⚠️ IA: Ninguna API de IA configurada (GROQ_API_KEY u OPENAI_API_KEY)');
     }
-    
+
     if (!this.config.sii.configured) {
       warnings.push('⚠️ SII: Certificado digital no configurado (funcionalidad limitada)');
     }

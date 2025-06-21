@@ -5,6 +5,7 @@ import { askTaxAdvisor, generateContextualGuide, type ChatMessage } from "@/serv
 
 export default function AIAdvisorWidget() {
   const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Array<{ role: string; content: string; timestamp: Date }>>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -104,25 +105,85 @@ export default function AIAdvisorWidget() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-  return (
+  }, [messages]);  return (
     <div className="fixed bottom-4 right-4 z-50">
       {/* Botón flotante principal */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full p-4 shadow-xl focus:outline-none transition-all duration-300 transform hover:scale-105"
-        title="Contador Auditor IA - Especialista en Tributación Chilena"
-      >
-        {open ? "✖️" : "🧮"}
-      </button>
+      <div className="relative">
+        <button
+          onClick={() => {
+            if (open && !minimized) {
+              setMinimized(true);
+            } else if (open && minimized) {
+              setMinimized(false);
+            } else {
+              setOpen(true);
+              setMinimized(false);
+            }
+          }}
+          className={`bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full shadow-xl focus:outline-none transition-all duration-300 transform hover:scale-105 ${
+            open && !minimized ? 'p-3' : 'p-4'
+          }`}
+          title="Contador Auditor IA - Especialista en Tributación Chilena"
+        >
+          {open && !minimized ? "➖" : "🧮"}
+        </button>
+
+        {/* Indicador de chat activo cuando está minimizado */}
+        {open && minimized && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse border-2 border-white"></div>
+        )}
+
+        {/* Badge con número de mensajes no leídos cuando está minimizado */}
+        {open && minimized && messages.length > 1 && (
+          <div className="absolute -top-2 -left-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+            {messages.filter(m => m.role === 'assistant').length}
+          </div>
+        )}
+      </div>
+
+      {/* Botón de cerrar cuando está abierto (alternativo) */}
+      {open && !minimized && (
+        <button
+          onClick={() => {
+            setOpen(false);
+            setMinimized(false);
+          }}
+          className="absolute -top-2 -left-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold transition-all duration-200 z-10"
+          title="Cerrar chat"
+        >
+          ✖
+        </button>
+      )}
       
       {/* Panel de chat */}
-      {open && (
-        <div className="mt-2 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col border border-gray-200">
+      {open && !minimized && (<div className="mt-2 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col border border-gray-200">
           {/* Header del chat */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl">
-            <h3 className="font-bold text-lg">🧮 Contador Auditor IA</h3>
-            <p className="text-sm opacity-90">Especialista en Normativa Tributaria Chilena</p>
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-lg">🧮 Contador Auditor IA</h3>
+              <p className="text-sm opacity-90">Especialista en Normativa Tributaria Chilena</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              {/* Botón minimizar */}
+              <button
+                onClick={() => setMinimized(true)}
+                className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all duration-200"
+                title="Minimizar"
+              >
+                <span className="text-white font-bold text-lg">➖</span>
+              </button>
+              {/* Botón cerrar */}
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setMinimized(false);
+                }}
+                className="w-8 h-8 bg-white/20 hover:bg-red-500 rounded-full flex items-center justify-center transition-all duration-200"
+                title="Cerrar"
+              >
+                <span className="text-white font-bold">✖</span>
+              </button>
+            </div>
           </div>
             {/* Área de mensajes */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100">

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Usuario, Empresa } from '@/types/auth';
-import { authService } from '@/services/authService';
+import authService from '@/services/authService';
 
 interface AuthContextType {
   usuario: Usuario | null;

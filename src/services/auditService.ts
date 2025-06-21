@@ -1,9 +1,14 @@
-/**
- * Servicio de Auditoría y Logs del Sistema
- * Sistema Contabilidad Chile
- */
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-import configManager from '@/lib/config';
+export interface AuditEvent {
+  action: string;
+  entity: string;
+  recordId?: string;
+  changes: Record<string, any>;
+  timestamp: Date;
+}
 
 export interface LogEntry {
   id: string;
@@ -24,30 +29,73 @@ export interface LogEntry {
   };
 }
 
-export interface AuditFilter {
-  fechaDesde?: Date;
-  fechaHasta?: Date;
-  level?: string;
-  category?: string;
-  userId?: string;
-  empresaId?: string;
-  buscar?: string;
-}
-
-export interface AuditStats {
-  totalLogs: number;
-  errores: number;
-  warnings: number;
-  auditorias: number;
-  loginsFallidos: number;
-  ultimaActividad: Date;
-}
-
 class AuditService {
+  private JWT_SECRET = process.env.JWT_SECRET || 'default-secret-for-dev';
   private logs: LogEntry[] = [];
-  private maxLogs: number = 10000; // Límite de logs en memoria
-  
-  constructor() {
+  private maxLogs: number = 10000;
+
+  async logEvent(empresaId: string, usuarioId: string | null, event: AuditEvent): Promise<void> {
+    try {
+      await prisma.auditLog.create({
+        data: {
+          empresaId,
+          usuarioId,
+          action: event.action,
+          entity: event.entity,
+          recordId: event.recordId,
+          changes: event.changes,
+          timestamp: event.timestamp
+        }
+      });
+    } catch (error) {
+      console.error('Error logging audit event:', error);
+    }
+  }
+
+  async getAuditLogs(empresaId: string, filters?: {
+    entity?: string;
+    usuarioId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }) {
+    try {
+      let where: any = { empresaId };
+
+      if (filters?.entity) where.entity = filters.entity;
+      if (filters?.usuarioId) where.usuarioId = filters.usuarioId;
+      if (filters?.startDate || filters?.endDate) {
+        where.timestamp = {};
+        if (filters.startDate) where.timestamp.gte = filters.startDate;
+        if (filters.endDate) where.timestamp.lte = filters.endDate;
+      }
+
+      return await prisma.auditLog.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: filters?.limit || 100
+      });
+    } catch (error) {
+      console.error('Error fetching audit logs:', error);
+      return [];
+    }
+  }
+
+  // Hash de eventos para integridad
+  signEvent(event: AuditEvent): string {
+    const eventString = JSON.stringify(event);
+    return jwt.sign({ eventData: eventString }, this.JWT_SECRET);
+  }
+
+  verifyEventSignature(event: AuditEvent, signature: string): boolean {
+    try {
+      const decoded = jwt.verify(signature, this.JWT_SECRET) as any;
+      const eventString = JSON.stringify(event);
+      return decoded.eventData === eventString;
+    } catch {
+      return false;
+    }
+  }
     this.initializeService();
   }
   
